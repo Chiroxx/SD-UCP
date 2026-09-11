@@ -46,7 +46,7 @@
     // LOGIN
     // ============================================================
     function setupLogin() {
-        if (users.length === 0) {
+        if (!users.find(u => u.username === 'Miguel.Hauser')) {
             users.push({
                 username: 'Miguel.Hauser',
                 password: 'admin123',
