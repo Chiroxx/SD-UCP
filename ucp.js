@@ -2754,6 +2754,20 @@
 
         // === ADMIN PANEL EVENT HANDLERS ===
 
+        document.getElementById('btnLogout')?.addEventListener('click', () => {
+            localStorage.removeItem('ucp_currentUser');
+            localStorage.removeItem('ucp_clockedIn');
+            localStorage.removeItem('ucp_clockInTime');
+            currentUser = null;
+            isClockedIn = false;
+            clockInTime = null;
+            if (shiftTimer) { clearInterval(shiftTimer); shiftTimer = null; }
+            shiftStart = null;
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'flex';
+            showToast('Erfolgreich abgemeldet.');
+        });
+
         document.getElementById('btnAdminPanel')?.addEventListener('click', () => {
             if (!canOpenAdminPanel()) { showToast('Keine Berechtigung!', 'error'); return; }
             try { loadAdminPanel(); } catch(e) { console.error('loadAdminPanel:', e); }
