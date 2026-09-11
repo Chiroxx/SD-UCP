@@ -56,8 +56,9 @@ body {
 }
 
 .login-logo { margin-bottom: 1rem; }
-.login-badge { font-size: 3rem; color: var(--accent-yellow); }
-.login-logo h1 { font-size: 2rem; font-weight: 800; color: var(--accent-blue); }
+.login-sheriff-star { width: 48px; height: 48px; margin: 0 auto 0.5rem; display: block; }
+.login-badge { font-size: 3rem; color: var(--accent-yellow); text-align: center; display: block; margin: 0 auto 0.5rem; }
+.login-logo h1 { font-size: 2rem; font-weight: 800; color: var(--accent-blue); text-align: center; display: block; }
 .login-subtitle { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; }
 
 .login-tabs {
