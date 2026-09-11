@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blaine County Sheriff Department User Control Panel">
+    <meta name="theme-color" content="#0f172a">
+    <title>SD-UCP | Blaine County Sheriff Department</title>
+    <link rel="stylesheet" href="ucp.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <div class="login-logo">
+                <div class="login-badge"><i class="fas fa-shield-halved"></i></div>
+                <h1>SD-UCP</h1>
+            </div>
+            <p class="login-subtitle">Blaine County Sheriff Department</p>
+            <div class="login-tabs">
+                <button class="login-tab active" data-tab="login">Anmelden</button>
+                <button class="login-tab" data-tab="register">Registrieren</button>
+            </div>
+            <form id="formLogin" class="login-form active">
+                <div class="form-group">
+                    <label>Benutzername</label>
+                    <input type="text" id="loginUser" required placeholder="Benutzername eingeben">
+                </div>
+                <div class="form-group">
+                    <label>Passwort</label>
+                    <input type="password" id="loginPass" required placeholder="Passwort eingeben">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Anmelden</button>
+            </form>
+            <form id="formRegister" class="login-form" style="display:none">
+                <div class="form-group">
+                    <label>Benutzername *</label>
+                    <input type="text" id="regUser" required placeholder="Benutzername waehlen">
+                </div>
+                <div class="form-group">
+                    <label>Passwort *</label>
+                    <input type="password" id="regPass" required placeholder="Passwort waehlen">
+                </div>
+                <div class="form-group">
+                    <label>Vollstaendiger Name *</label>
+                    <input type="text" id="regFullName" required placeholder="z.B. Max Mustermann">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Dienstnummer *</label>
+                        <input type="text" id="regDienstnr" required placeholder="z.B. 4001">
+                    </div>
+                    <div class="form-group">
+                        <label>Rang *</label>
+                        <select id="regRang" required>
+                            <option value="">-- Rang --</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Konto erstellen</button>
+            </form>
+            <div id="loginError" class="login-error"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app-wrapper" id="appContent" style="display:none;">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <img src="Sheriff stern.png" alt="Sheriff Stern" class="sheriff-star-img">
+                <div class="badge-text">
+                    <span class="badge-title">BLAINE COUNTY</span>
+                    <span class="badge-main">SHERIFF DEPARTMENT</span>
+                    <span class="badge-sub">UCP</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+            <div class="sidebar-mountain">
+                <svg viewBox="0 0 200 80" class="mountain-svg">
+                    <path d="M0,80 L30,40 L50,55 L80,20 L110,50 L130,30 L160,55 L180,35 L200,80 Z" fill="rgba(30,58,95,0.4)"/>
+                    <path d="M0,80 L40,50 L70,60 L100,35 L140,60 L170,45 L200,80 Z" fill="rgba(30,58,95,0.6)"/>
+                </svg>
+            </div>
+            <div class="sidebar-footer">
+                <span>SERVICE &bull; INTEGRITY &bull; COMMUNITY</span>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-wrapper">
+            <!-- USER BAR -->
+            <header class="topbar">
+                <div class="topbar-right">
+                    <div class="topbar-user" id="topbarUser" style="cursor:pointer" onclick="UCP.goToProfile()">
+                        <div class="user-avatar"><i class="fas fa-user"></i></div>
+                        <div class="user-info">
+                            <span class="user-name" id="userName">User</span>
+                            <span class="user-rank" id="userRank">Rang</span>
+                        </div>
+                    </div>
+                    <button class="btn-icon" id="btnNotifications"><i class="fas fa-bell"></i></button>
+                    <button class="btn-icon" id="btnAdminPanel" style="display:none" title="Admin-Panel"><i class="fas fa-gear"></i></button>
+                    <button class="btn-logout" id="btnLogout">
+                        <i class="fas fa-right-from-bracket"></i>
+                        Abmelden
+                    </button>
+                </div>
+            </header>
+
+            <!-- CONTENT AREA -->
+            <main class="content-area">
+                <!-- DASHBOARD -->
+                <section id="module-dashboard" class="module active">
+                    <div class="dashboard-banner" style="background-image: url('Dashboard bild.png');">
+                        <div class="banner-overlay"></div>
+                        <div class="banner-content">
+                            <span class="banner-subtitle">BLAINE COUNTY SHERIFF DEPARTMENT</span>
+                            <h1 class="banner-title">UCP &ndash; Dashboard</h1>
+                            <p class="banner-text">Willkommen im Sheriff Department UCP. Hier findest du alle wichtigen Informationen auf einen Blick.</p>
+                        </div>
+                        <div class="banner-time" id="bannerTime">
+                            <div class="time-icon"><i class="fas fa-calendar-days"></i></div>
+                            <div class="time-date" id="bannerDate">11.09.2026</div>
+                            <div class="time-clock" id="bannerClock">03:42 Uhr</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card stat-green" onclick="UCP.switchView('leitstelle')">
+                            <div class="stat-icon"><i class="fas fa-tower-broadcast"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">LEITSTELLE</span>
+                                <span class="stat-value" id="dashLeitstelle">0</span>
+                                <span class="stat-desc">Aktive Einsaetze</span>
+                            </div>
+                            <div class="stat-arrow"><i class="fas fa-chevron-right"></i></div>
+                        </div>
+                        <div class="stat-card stat-blue" onclick="UCP.switchView('mitarbeiter')">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">ROSTER</span>
+                                <span class="stat-value" id="dashRoster">0</span>
+                                <span class="stat-desc">Aktive Mitglieder</span>
+                            </div>
+                            <div class="stat-arrow"><i class="fas fa-chevron-right"></i></div>
+                        </div>
+                        <div class="stat-card stat-purple" onclick="UCP.switchView('ausbildung')">
+                            <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">AUSBILDUNG</span>
+                                <span class="stat-value" id="dashAusbildung">0</span>
+                                <span class="stat-desc">Heute anstehend</span>
+                            </div>
+                            <div class="stat-arrow"><i class="fas fa-chevron-right"></i></div>
+                        </div>
+                        <div class="stat-card stat-orange" onclick="UCP.switchView('kalender')">
+                            <div class="stat-icon"><i class="fas fa-calendar-days"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">TERMINE</span>
+                                <span class="stat-value" id="dashTermine">0</span>
+                                <span class="stat-desc">Diese Woche</span>
+                            </div>
+                            <div class="stat-arrow"><i class="fas fa-chevron-right"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-appointments">
+                        <div class="section-header">
+                            <h2><i class="fas fa-calendar-days"></i> Kommende Termine</h2>
+                            <button class="btn btn-sm btn-outline" onclick="UCP.switchView('kalender')"><i class="fas fa-arrow-right"></i> Alle Termine</button>
+                        </div>
+                        <div id="dashTermineListe"></div>
+                    </div>
+
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-newspaper"></i> Neuigkeiten & Updates</h2>
+                            <button class="btn btn-primary" id="btnNeueNews">+ Neue Neuigkeit</button>
+                        </div>
+                        <div id="newsListe"></div>
+                    </div>
+                </section>
+
+                <!-- LEITSTELLE -->
+                <section id="module-leitstelle" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-tower-broadcast"></i> Leitstelle</h1>
+                        <button class="btn btn-primary" id="btnRefreshLeitstelle">Aktualisieren</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Verfuegbar-Liste</h2>
+                                <button class="btn btn-sm btn-primary" id="btnAddOfficer">+ Beamten hinzufuegen</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="data-table" id="verfugbarTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Dienstnr.</th>
+                                                <th>Rang</th>
+                                                <th>Code</th>
+                                                <th>Einsatzfelder</th>
+                                                <th>Aktionen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="verfugbarBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-row">
+                            <div class="card">
+                                <div class="card-header"><h2>Einsatzcodes</h2></div>
+                                <div class="card-body codes-list" id="einsatzCodes"></div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><h2>Miranda-Kurztext</h2></div>
+                                <div class="card-body">
+                                    <div class="miranda-text" id="mirandaKurztext">&bdquo;Sie haben das Recht zu schweigen...&ldquo;</div>
+                                    <button class="btn btn-sm btn-primary" id="btnCopyMiranda">Kopieren</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Einsatzfelder (Quick-Select)</h2></div>
+                            <div class="card-body">
+                                <div class="einsatzfelder-grid" id="einsatzfelderGrid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- KALENDER -->
+                <section id="module-kalender" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-calendar-days"></i> Kalender</h1>
+                        <button class="btn btn-primary" id="btnNeuerTermin">+ Neuer Termin</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <div class="calendar-nav">
+                                    <button class="btn btn-sm btn-outline" id="calPrev"><i class="fas fa-chevron-left"></i></button>
+                                    <h2 id="calMonthYear">September 2026</h2>
+                                    <button class="btn btn-sm btn-outline" id="calNext"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <button class="btn btn-sm btn-outline" id="calToday">Heute</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="calendar-grid">
+                                    <div class="calendar-weekdays">
+                                        <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+                                    </div>
+                                    <div class="calendar-days" id="calDays"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Termine</h2>
+                                <span class="text-muted" id="calSelectedDate"></span>
+                            </div>
+                            <div class="card-body">
+                                <div id="termineListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- MITARBEITER / ROSTER -->
+                <section id="module-mitarbeiter" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-users"></i> Roster</h1>
+                        <button class="btn btn-primary" id="btnNeuerMitarbeiter">+ Neuer Mitarbeiter</button>
+                    </div>
+                    <div class="card card-full">
+                        <div class="card-body">
+                            <div class="search-filters">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="searchMitarbeiter" placeholder="Mitarbeiter suchen..." class="search-input">
+                                </div>
+                                <select id="filterRang2" class="filter-select"><option value="">Alle Ränge</option></select>
+                                <select id="filterFunktion2" class="filter-select"><option value="">Alle Funktionen</option></select>
+                                <select id="filterStatus2" class="filter-select">
+                                    <option value="">Alle Status</option>
+                                    <option value="Aktiv">Aktiv</option>
+                                    <option value="Inaktiv">Inaktiv</option>
+                                    <option value="Beurlaubt">Beurlaubt</option>
+                                    <option value="Gekuendigt">Gekuendigt</option>
+                                </select>
+                            </div>
+                            <div class="table-container">
+                                <table class="data-table sortable-table" id="mitarbeiterTable2">
+                                    <thead>
+                                        <tr>
+                                            <th data-sort="name">Name <i class="fas fa-sort"></i></th>
+                                            <th data-sort="dienstnr">Dienstnr. <i class="fas fa-sort"></i></th>
+                                            <th data-sort="rang" class="sort-asc">Rang <i class="fas fa-sort-up"></i></th>
+                                            <th data-sort="abteilung">Abteilung <i class="fas fa-sort"></i></th>
+                                            <th data-sort="funktion">Funktion <i class="fas fa-sort"></i></th>
+                                            <th data-sort="status">Status <i class="fas fa-sort"></i></th>
+                                            <th data-sort="eintritt">Eintritt <i class="fas fa-sort"></i></th>
+                                            <th>Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mitarbeiterBody2"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AUSBILDUNG -->
+                <section id="module-ausbildung" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-graduation-cap"></i> Ausbildung</h1>
+                        <button class="btn btn-primary" id="btnNeueAusbildung">+ Neue Ausbildung</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">GESAMT</span><span class="mini-stat-value" id="ausbGesamt">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">GEPLANT</span><span class="mini-stat-value value-offen" id="ausbGeplant">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">LAUFEND</span><span class="mini-stat-value value-ausgezahlt" id="ausbLaufend">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">ABGESCHLOSSEN</span><span class="mini-stat-value" id="ausbAbgeschlossen">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Alle Ausbildungen</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <select id="filterAusbStatus" class="filter-select">
+                                        <option value="">Alle Status</option>
+                                        <option value="Geplant">Geplant</option>
+                                        <option value="Laufend">Laufend</option>
+                                        <option value="Abgeschlossen">Abgeschlossen</option>
+                                        <option value="Abgesagt">Abgesagt</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="ausbildungListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- UNITS -->
+                <section id="module-units" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-crosshairs"></i> Units</h1>
+                        <button class="btn btn-primary" id="btnNeueUnit">+ Neue Unit</button>
+                    </div>
+                    <div class="units-grid" id="unitsContainer"></div>
+                </section>
+
+                <!-- STREIFEN -->
+                <section id="module-streifen" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-car"></i> Streifen</h1>
+                        <button class="btn btn-primary" id="btnNeueStreife">+ Neue Streife</button>
+                    </div>
+                    <div class="streifen-grid" id="streifenGrid"></div>
+                </section>
+
+                <!-- ZEITERFASSUNG -->
+                <section id="module-zeiterfassung" class="module">
+                    <div class="module-header"><h1><i class="fas fa-stopwatch"></i> Zeiterfassung</h1></div>
+                    <div class="content-grid">
+                        <div class="card">
+                            <div class="card-header"><h2>Meine Schicht</h2></div>
+                            <div class="card-body">
+                                <div class="shift-status" id="shiftStatus"></div>
+                                <div class="shift-time" id="shiftTime">00:00:00</div>
+                                <div class="shift-controls">
+                                    <button class="btn btn-primary btn-lg" id="btnStempeln">Einstempeln</button>
+                                    <button class="btn btn-danger btn-lg" id="btnAustempeln" disabled>Ausstempeln</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h2>Statistik</h2></div>
+                            <div class="card-body">
+                                <div class="stats-mini">
+                                    <div class="stat-mini"><span class="stat-mini-label">HEUTE</span><span class="stat-mini-value" id="statHeute">0:00 Std</span></div>
+                                    <div class="stat-mini"><span class="stat-mini-label">WOCHE</span><span class="stat-mini-value" id="statWoche">0:00 Std</span></div>
+                                    <div class="stat-mini"><span class="stat-mini-label">MONAT</span><span class="stat-mini-value" id="statMonat">0:00 Std</span></div>
+                                    <div class="stat-mini"><span class="stat-mini-label">GESAMT</span><span class="stat-mini-value" id="statGesamt">0:00 Std</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Historie</h2></div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="data-table" id="historieTable">
+                                        <thead><tr><th>Datum</th><th>Beginn</th><th>Ende</th><th>Dauer</th><th>Status</th></tr></thead>
+                                        <tbody id="historieBody"><tr class="empty-row"><td colspan="5">Noch keine abgeschlossenen Schichten.</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- RECHNUNGEN -->
+                <section id="module-rechnungen" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-dollar-sign"></i> Rechnungen</h1>
+                        <button class="btn btn-primary" id="btnNeueRechnung">+ Neue Rechnung</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">OFFEN</span><span class="mini-stat-value value-offen" id="sumOffen">0,00 $</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">AUSGEZAHLT</span><span class="mini-stat-value value-ausgezahlt" id="sumAusgezahlt">0,00 $</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">GESAMT</span><span class="mini-stat-value value-gesamt" id="sumGesamt">0,00 $</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">RECHNUNGEN</span><span class="mini-stat-value" id="sumCount">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Verlauf</h2></div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="data-table" id="rechnungenTable">
+                                        <thead><tr><th>Nr.</th><th>Datum</th><th>Betreff</th><th>Betrag</th><th>Status</th><th>Aktionen</th></tr></thead>
+                                        <tbody id="rechnungenBody"><tr class="empty-row"><td colspan="6">Du hast noch keine Rechnung eingereicht.</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- STRAFKATALOG -->
+                <section id="module-strafkatalog" class="module">
+                    <div class="module-header"><h1><i class="fas fa-scale-balanced"></i> Strafkatalog & Aktenhilfe</h1></div>
+                    <div class="content-grid">
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Strafrechner</h2></div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Zustaendige Instanz</label>
+                                        <select id="strafInstanz">
+                                            <option value="exekutive">Exekutive (max 40 Min)</option>
+                                            <option value="judikative">Judikative (keine Grenze)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="straf-kategorien" id="strafKategorien"></div>
+                                <div class="straf-summary">
+                                    <div class="summary-row"><span>Gesamt-Geldstrafe:</span><span id="sumGeldstrafe">0 $</span></div>
+                                    <div class="summary-row"><span>Gesamt-Haft:</span><span id="sumHaft">0 Min</span></div>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="checkBeihilfe">
+                                    <label for="checkBeihilfe">Als Beihilfe werten (58.2 &ndash; 20%)</label>
+                                </div>
+                                <div class="straf-actions">
+                                    <button class="btn btn-outline" id="btnClearStraf">Auswahl leeren</button>
+                                    <button class="btn btn-primary" id="btnCopyStraf">Kopieren</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Strafkatalog (Uebersicht)</h2></div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="data-table" id="strafkatalogTable">
+                                        <thead><tr><th>&sect;</th><th>Tatbestand</th><th>Geldstrafe</th><th>Haft (Min)</th><th>Kategorie</th></tr></thead>
+                                        <tbody id="strafkatalogBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FUNKCODES -->
+                <section id="module-funkcodes" class="module">
+                    <div class="module-header"><h1><i class="fas fa-comment"></i> Funkcodes</h1></div>
+                    <div class="card-row">
+                        <div class="card">
+                            <div class="card-header"><h2>10-Codes</h2></div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="data-table"><thead><tr><th>Code</th><th>Bedeutung</th></tr></thead><tbody id="tenCodesBody"></tbody></table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h2>Einsatz-Codes</h2></div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="data-table"><thead><tr><th>Code</th><th>Bedeutung</th></tr></thead><tbody id="codesBody"></tbody></table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- MIRANDA -->
+                <section id="module-miranda" class="module">
+                    <div class="module-header"><h1><i class="fas fa-triangle-exclamation"></i> Miranda Warnung</h1></div>
+                    <div class="card-row">
+                        <div class="card">
+                            <div class="card-header"><h2>Vollstaendige Miranda-Warnung</h2></div>
+                            <div class="card-body">
+                                <div class="miranda-full" id="mirandaFull">
+                                    <p>Sie haben das Recht zu schweigen.</p>
+                                    <p>Alles, was Sie sagen, kann und wird vor Gericht gegen Sie verwendet werden.</p>
+                                    <p>Sie haben das Recht auf einen Anwalt.</p>
+                                    <p>Sofern sich ein Pflichtverteidiger des Department of Justice im aktiven Dienst befindet, wird Ihnen dieser gestellt, sollten Sie sich keinen eigenen Anwalt leisten koennen oder keinen erreichen.</p>
+                                    <p class="miranda-question">Haben Sie diese Rechte verstanden?</p>
+                                </div>
+                                <div class="btn-row">
+                                    <button class="btn btn-primary" id="btnCopyMirandaFull">Komplett kopieren</button>
+                                    <button class="btn btn-outline" id="btnCopyMirandaShort">Kurzversion</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h2>Protokoll</h2></div>
+                            <div class="card-body">
+                                <div class="form-group"><label>Tatvorwurf</label><input type="text" id="mirandaTatvorwurf" placeholder="z.B. &sect;211 StGB - Mord"></div>
+                                <div class="form-group"><label>Ort</label><input type="text" id="mirandaOrt" placeholder="z.B. Hauptwache"></div>
+                                <div class="form-group"><label>Uhrzeit</label><input type="time" id="mirandaUhrzeit"></div>
+                                <button class="btn btn-primary" id="btnCopyMirandaProtocol">Protokoll kopieren</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- WAFFENLIZENZEN -->
+                <section id="module-waffenlizenzen" class="module">
+                    <div class="module-header"><h1><i class="fas fa-gun"></i> Waffenlizenzen</h1></div>
+                    <div class="card card-full">
+                        <div class="card-header"><h2>&sect;8 Waffenlizenzen</h2></div>
+                        <div class="card-body">
+                            <div class="lizenz-stufen" id="lizenzStufen"></div>
+                            <div class="lizenz-hinweise">
+                                <p>(2) Hoehere Lizenzstufen beinhalten automatisch niedrigere.</p>
+                                <p>(3) Waffenlizenzen sind stets mitzufuehren und vorzuzeigen.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ILLEGALE GEGENSTAENDE -->
+                <section id="module-illegale" class="module">
+                    <div class="module-header"><h1><i class="fas fa-ban"></i> Illegale Gegenstaende</h1></div>
+                    <div class="content-grid">
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Schwarzgeld & Geldwaesche</h2></div>
+                            <div class="card-body">
+                                <div class="gesetz-box"><h3>&sect;28 StGB &ndash; Schwarzgeld</h3><p>Besitz, Handel, Transport, Weitergabe von Schwarzgeld</p></div>
+                                <div class="gesetz-box"><h3>&sect;27 StGB &ndash; Geldwaesche</h3><p>Einfuehren / Verschleiern / Umwandeln illegaler Vermoegenswerte</p></div>
+                                <p class="warnung">Niemals beides gleichzeitig anwenden!</p>
+                            </div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Weitere illegale Gegenstaende (&sect;71 StGB)</h2></div>
+                            <div class="card-body"><div class="illegale-kategorien" id="illegaleKategorien"></div></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FISCHE -->
+                <section id="module-fische" class="module">
+                    <div class="module-header"><h1><i class="fas fa-fish"></i> Fische &ndash; &sect;82 StGB Wildangeln</h1></div>
+                    <div class="card card-full">
+                        <div class="card-body">
+                            <div class="search-box" style="margin-bottom:1rem">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchFische" placeholder="Fisch suchen..." class="search-input">
+                            </div>
+                            <div class="fische-grid" id="fischeGrid"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- EINSATZ-BERICHTER -->
+                <section id="module-einsatzberichte" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-clipboard-list"></i> Einsatz-Berichte</h1>
+                        <button class="btn btn-primary" id="btnNeuerBericht">+ Neuer Bericht</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">GESAMT</span><span class="mini-stat-value" id="ebGesamt">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">OFFEN</span><span class="mini-stat-value value-offen" id="ebOffen">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">IN BEARBEITUNG</span><span class="mini-stat-value value-ausgezahlt" id="ebLaufend">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">ABGESCHLOSSEN</span><span class="mini-stat-value" id="ebAbgeschlossen">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Alle Berichte</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchBericht" placeholder="Suchen..." class="search-input">
+                                    </div>
+                                    <select id="filterBerichtStatus" class="filter-select">
+                                        <option value="">Alle Status</option>
+                                        <option value="Offen">Offen</option>
+                                        <option value="In Bearbeitung">In Bearbeitung</option>
+                                        <option value="Abgeschlossen">Abgeschlossen</option>
+                                    </select>
+                                    <select id="filterBerichtTyp" class="filter-select">
+                                        <option value="">Alle Typen</option>
+                                        <option value="Verkehrsunfall">Verkehrsunfall</option>
+                                        <option value="Straftat">Straftat</option>
+                                        <option value="Notfall">Notfall</option>
+                                        <option value="Verkehrskontrolle">Verkehrskontrolle</option>
+                                        <option value="Funktionseinsatz">Funktionseinsatz</option>
+                                        <option value="Sonstiges">Sonstiges</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="berichteListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- MEDIATHEK -->
+                <section id="module-mediathek" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-book"></i> Mediathek</h1>
+                        <button class="btn btn-primary" id="btnNeuerEintrag">+ Neuer Eintrag</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">GESAMT</span><span class="mini-stat-value" id="medGesamt">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">AUSBILDUNG</span><span class="mini-stat-value value-offen" id="medAusbildung">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">SOPS</span><span class="mini-stat-value value-ausgezahlt" id="medSops">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">GESETZE</span><span class="mini-stat-value" id="medGesetze">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Alle Eintraege</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchMediathek" placeholder="Suchen..." class="search-input">
+                                    </div>
+                                    <select id="filterMedKategorie" class="filter-select">
+                                        <option value="">Alle Kategorien</option>
+                                        <option value="Ausbildungsunterlagen">Ausbildungsunterlagen</option>
+                                        <option value="SOPs">SOPs</option>
+                                        <option value="Gesetze">Gesetze</option>
+                                        <option value="Formulare">Formulare</option>
+                                        <option value="Sonstiges">Sonstiges</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="fische-grid" id="mediathekListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CASE MANAGEMENT -->
+                <section id="module-cases" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-folder-open"></i> Case Management</h1>
+                        <button class="btn btn-primary" id="btnNeuerCase">+ Neuer Case</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">GESAMT</span><span class="mini-stat-value" id="caseGesamt">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">OFFEN</span><span class="mini-stat-value value-offen" id="caseOffen">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">IN BEARBEITUNG</span><span class="mini-stat-value value-ausgezahlt" id="caseLaufend">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">ABGESCHLOSSEN</span><span class="mini-stat-value" id="caseAbgeschlossen">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Alle Cases</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchCase" placeholder="Suchen..." class="search-input">
+                                    </div>
+                                    <select id="filterCaseStatus" class="filter-select">
+                                        <option value="">Alle Status</option>
+                                        <option value="Offen">Offen</option>
+                                        <option value="In Bearbeitung">In Bearbeitung</option>
+                                        <option value="Abgeschlossen">Abgeschlossen</option>
+                                        <option value="Archiviert">Archiviert</option>
+                                    </select>
+                                    <select id="filterCasePrioritaet" class="filter-select">
+                                        <option value="">Alle Prioritaeten</option>
+                                        <option value="Hoch">Hoch</option>
+                                        <option value="Mittel">Mittel</option>
+                                        <option value="Niedrig">Niedrig</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="casesListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AKTEN -->
+                <section id="module-akten" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-file-alt"></i> Akten</h1>
+                        <button class="btn btn-primary" id="btnNeueAkte">+ Neue Akte</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">GESAMT</span><span class="mini-stat-value" id="aktenGesamt">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">FALLAKTEN</span><span class="mini-stat-value value-offen" id="aktenFallakten">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">PROTOKOLLE</span><span class="mini-stat-value value-ausgezahlt" id="aktenProtokolle">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">VERMERKE</span><span class="mini-stat-value" id="aktenVermerke">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Alle Akten</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchAkte" placeholder="Suchen..." class="search-input">
+                                    </div>
+                                    <select id="filterAkteKategorie" class="filter-select">
+                                        <option value="">Alle Kategorien</option>
+                                        <option value="Fallakte">Fallakte</option>
+                                        <option value="Vermerk">Vermerk</option>
+                                        <option value="Protokoll">Protokoll</option>
+                                        <option value="Formular">Formular</option>
+                                        <option value="Dokumentation">Dokumentation</option>
+                                        <option value="Sonstiges">Sonstiges</option>
+                                    </select>
+                                    <select id="filterAkteStatus" class="filter-select">
+                                        <option value="">Alle Status</option>
+                                        <option value="Aktuell">Aktuell</option>
+                                        <option value="Archiviert">Archiviert</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="aktenListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PERSONALAKTEN -->
+                <section id="module-personalakten" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-folder-user"></i> Personalakten</h1>
+                        <button class="btn btn-primary" id="btnNeuePA">+ Neuer Eintrag</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">GESAMT</span><span class="mini-stat-value" id="paGesamt">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">ABMAHNUNGEN</span><span class="mini-stat-value value-offen" id="paAbmahnungen">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">BEFOERDERUNGEN</span><span class="mini-stat-value value-ausgezahlt" id="paBefoerderungen">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">NOTIZEN</span><span class="mini-stat-value" id="paNotizen">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Alle Eintraege</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchPA" placeholder="Mitarbeiter oder Inhalt..." class="search-input">
+                                    </div>
+                                    <select id="filterPATyp" class="filter-select">
+                                        <option value="">Alle Typen</option>
+                                        <option value="Abmahnung">Abmahnung</option>
+                                        <option value="Befoerderung">Befoerderung</option>
+                                        <option value="Notiz">Notiz</option>
+                                        <option value="Verweis">Verweis</option>
+                                        <option value="Belobigung">Belobigung</option>
+                                        <option value="Urlaub">Urlaub</option>
+                                        <option value="Sonstiges">Sonstiges</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="paListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- NACHRICHTEN -->
+                <section id="module-nachrichten" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-envelope"></i> Nachrichten</h1>
+                        <button class="btn btn-primary" id="btnNeueNachricht">+ Neue Nachricht</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">EMPFANGEN</span><span class="mini-stat-value" id="msgEmpfangen">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">UNGELESEN</span><span class="mini-stat-value value-offen" id="msgUngelesen">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">GESENDET</span><span class="mini-stat-value value-ausgezahlt" id="msgGesendet">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Posteingang</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <button class="btn btn-sm btn-outline active" id="msgTabEmpfangen"><i class="fas fa-inbox"></i> Empfangen</button>
+                                    <button class="btn btn-sm btn-outline" id="msgTabGesendet"><i class="fas fa-paper-plane"></i> Gesendet</button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="nachrichtenListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PROFILSEITE -->
+                <section id="module-profil" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-id-card"></i> Mein Profil</h1>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">RANG</span><span class="mini-stat-value" id="profRang">-</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">ABTEILUNG</span><span class="mini-stat-value value-offen" id="profAbteilung">-</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">FUNKTION</span><span class="mini-stat-value value-ausgezahlt" id="profFunktion">-</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">DIENSTNR.</span><span class="mini-stat-value" id="profDienstnr">-</span></div>
+                        </div>
+                        <div class="profile-grid">
+                            <div class="card">
+                                <div class="card-header"><h2>persoenliche Daten</h2></div>
+                                <div class="card-body">
+                                    <form id="formProfil">
+                                        <div class="form-group"><label>Name</label><input type="text" id="profName" disabled class="input-disabled"></div>
+                                        <div class="form-row">
+                                            <div class="form-group"><label>Telefon</label><input type="text" id="profTelefon" placeholder="z.B. 555-1234"></div>
+                                            <div class="form-group"><label>E-Mail</label><input type="email" id="profEmail" placeholder="z.B. max@sd.gov"></div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group"><label>Adresse</label><input type="text" id="profAdresse" placeholder="z.B. Forum Dr. 12"></div>
+                                            <div class="form-group"><label>Geburtstag</label><input type="date" id="profGeburtstag"></div>
+                                        </div>
+                                        <div class="form-group"><label>Notfallkontakt</label><input type="text" id="profNotfall" placeholder="Name + Telefon"></div>
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Speichern</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><h2>Passwort aendern</h2></div>
+                                <div class="card-body">
+                                    <form id="formPasswort">
+                                        <div class="form-group"><label>Aktuelles Passwort *</label><input type="password" id="profPassAlt" required placeholder="Aktuelles Passwort"></div>
+                                        <div class="form-group"><label>Neues Passwort *</label><input type="password" id="profPassNeu" required placeholder="Neues Passwort (min. 4 Zeichen)"></div>
+                                        <div class="form-group"><label>Neues Passwort wiederholen *</label><input type="password" id="profPassNeu2" required placeholder="Passwort bestaetigen"></div>
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn-primary"><i class="fas fa-key"></i> Passwort aendern</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Meine Ausbildungen</h2></div>
+                            <div class="card-body">
+                                <div id="profAusbildungen"></div>
+                            </div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header"><h2>Meine Personalakte</h2></div>
+                            <div class="card-body">
+                                <div id="profPersonalakte"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <footer class="app-footer">
+                <span>Blaine County Sheriff Department | UCP v2.0</span>
+                <span class="footer-text">&bdquo;Protect and Serve&ldquo;</span>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal" id="modalOfficer">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Beamten hinzufuegen</h3><button class="modal-close" id="closeModalOfficer">&times;</button></div>
+            <form id="formOfficer">
+                <div class="form-row">
+                    <div class="form-group"><label>Name *</label><input type="text" id="officerName" required></div>
+                    <div class="form-group"><label>Dienstnummer *</label><input type="text" id="officerDienstnr" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Rang *</label><select id="officerRang" required></select></div>
+                    <div class="form-group"><label>Code *</label><select id="officerCode" required>
+                        <option value="1">Code 1 &ndash; Einsatzbereit</option>
+                        <option value="2">Code 2 &ndash; Ohne Sonderwegerecht</option>
+                        <option value="3">Code 3 &ndash; Mit Sonderwegerecht</option>
+                        <option value="4">Code 4 &ndash; Einsatz beendet</option>
+                        <option value="5">Code 5 &ndash; Im Einsatz</option>
+                        <option value="6">Code 6 &ndash; Nicht bereit/Pause</option>
+                    </select></div>
+                </div>
+                <div class="form-group"><label>Einsatzfelder</label><div class="checkbox-group" id="officerEinsatzfelder"></div></div>
+                <div class="form-actions"><button type="button" class="btn btn-outline" id="cancelOfficer">Abbrechen</button><button type="submit" class="btn btn-primary">Speichern</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalMitarbeiter">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="mitarbeiterModalTitle">Mitarbeiter hinzufuegen</h3><button class="modal-close" id="closeModalMitarbeiter">&times;</button></div>
+            <form id="formMitarbeiter">
+                <div class="form-row">
+                    <div class="form-group"><label>Vorname *</label><input type="text" id="mitVorname" required></div>
+                    <div class="form-group"><label>Nachname *</label><input type="text" id="mitNachname" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Dienstnummer *</label><input type="text" id="mitDienstnr" required></div>
+                    <div class="form-group"><label>Rang *</label><select id="mitRang" required></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Telefon</label><input type="text" id="mitTelefon"></div>
+                    <div class="form-group"><label>Status</label><select id="mitStatus">
+                        <option value="Aktiv">Aktiv</option><option value="Inaktiv">Inaktiv</option><option value="Beurlaubt">Beurlaubt</option><option value="Gekuendigt">Gekuendigt</option>
+                    </select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Abteilung</label><select id="mitAbteilung">
+                        <option value="">-- Abteilung --</option><option value="VHD">VHD (Vehicle Division)</option><option value="SEB">SEB (Sondereinsatzkommando)</option><option value="DTU">DTU (Detective Unit)</option><option value="K-9">K-9 (Hundestaffel)</option>
+                    </select></div>
+                    <div class="form-group"><label>Funktion</label><div class="checkbox-group" id="mitFunktionGroup">
+                        <label><input type="checkbox" value="Ausbilder"> Ausbilder</label><label><input type="checkbox" value="Supervisor"> Supervisor</label><label><input type="checkbox" value="Personalabteilung"> Personalabteilung</label>
+                    </div></div>
+                </div>
+                <div class="form-group"><label>Notizen</label><textarea id="mitNotizen" rows="2"></textarea></div>
+                <div class="form-actions"><button type="button" class="btn btn-outline" id="cancelMitarbeiter">Abbrechen</button><button type="submit" class="btn btn-primary">Speichern</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalMitarbeiterDetail">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="detailMitarbeiterName">Details</h3><button class="modal-close" id="closeModalMitarbeiterDetail">&times;</button></div>
+            <div id="mitarbeiterDetailContent" class="mitarbeiter-detail"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalRechnung">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Neue Rechnung</h3><button class="modal-close" id="closeModalRechnung">&times;</button></div>
+            <form id="formRechnung">
+                <div class="form-group"><label>Betreff *</label><input type="text" id="rechnungBetreff" required></div>
+                <div class="form-group"><label>Betrag ($) *</label><input type="number" id="rechnungBetrag" step="0.01" min="0.01" required></div>
+                <div class="form-group"><label>Beschreibung</label><textarea id="rechnungBeschreibung" rows="3"></textarea></div>
+                <div class="form-actions"><button type="button" class="btn btn-outline" id="cancelRechnung">Abbrechen</button><button type="submit" class="btn btn-primary">Einreichen</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalStreife">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Neue Streife</h3><button class="modal-close" id="closeModalStreife">&times;</button></div>
+            <form id="formStreife">
+                <div class="form-group"><label>Name *</label><input type="text" id="streifeName" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Fahrzeug</label><select id="streifeFahrzeug">
+                        <option value="Standard Streifenwagen">Standard Streifenwagen</option><option value="Motorrad">Motorrad</option><option value="SUV">SUV</option><option value="Unmarked">Unmarked</option><option value="K-9 Einheit">K-9 Einheit</option><option value="Highspeed">Highspeed</option>
+                    </select></div>
+                    <div class="form-group"><label>Plaetze</label><input type="number" id="streifeMax" value="4" min="1" max="4"></div>
+                </div>
+                <div class="form-group"><label>Gebiet</label><input type="text" id="streifeGebiet"></div>
+                <div class="form-group"><label>Beschreibung</label><textarea id="streifeBeschreibung" rows="2"></textarea></div>
+                <div class="form-actions"><button type="button" class="btn btn-outline" id="cancelStreife">Abbrechen</button><button type="submit" class="btn btn-primary">Erstellen</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalUnit">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="unitModalTitle">Unit erstellen</h3><button class="modal-close" id="closeModalUnit">&times;</button></div>
+            <form id="formUnit">
+                <div class="form-row">
+                    <div class="form-group"><label>Name *</label><input type="text" id="unitName" required></div>
+                    <div class="form-group"><label>Kuerzel *</label><input type="text" id="unitKuerzel" required maxlength="10"></div>
+                </div>
+                <div class="form-group"><label>Beschreibung</label><textarea id="unitBeschreibung" rows="2"></textarea></div>
+                <div class="form-group"><label>Leiter</label><input type="text" id="unitLeiter"></div>
+                <div class="form-group"><label>Mitglieder</label><div id="unitMitgliederListe" class="members-select"></div></div>
+                <div class="form-actions"><button type="button" class="btn btn-outline" id="cancelUnit">Abbrechen</button><button type="submit" class="btn btn-primary">Speichern</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalUnitDetail">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="detailUnitName">Unit Details</h3><button class="modal-close" id="closeModalUnitDetail">&times;</button></div>
+            <div id="unitDetailContent" class="unit-detail"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalTermin">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="terminModalTitle">Neuer Termin</h3><button class="modal-close" id="closeModalTermin">&times;</button></div>
+            <form id="formTermin">
+                <div class="form-group"><label>Titel *</label><input type="text" id="terminTitel" required placeholder="z.B. Dienstbesprechung"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Datum *</label><input type="date" id="terminDatum" required></div>
+                    <div class="form-group"><label>Uhrzeit</label><input type="time" id="terminUhrzeit"></div>
+                </div>
+                <div class="form-group"><label>Typ</label>
+                    <select id="terminTyp">
+                        <option value="Termin">Termin</option>
+                        <option value="Ausbildung">Ausbildung</option>
+                        <option value="Einsatz">Einsatz</option>
+                        <option value="Besprechung">Besprechung</option>
+                        <option value="Veranstaltung">Veranstaltung</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Ort</label><input type="text" id="terminOrt" placeholder="z.B. Hauptwache"></div>
+                <div class="form-group"><label>Beschreibung</label><textarea id="terminBeschreibung" rows="3"></textarea></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelTermin">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalTerminDetail">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="terminDetailTitle">Termin</h3><button class="modal-close" id="closeModalTerminDetail">&times;</button></div>
+            <div id="terminDetailContent" class="termin-detail"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalNews">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="newsModalTitle">Neue Neuigkeit</h3><button class="modal-close" id="closeModalNews">&times;</button></div>
+            <form id="formNews">
+                <div class="form-group"><label>Titel *</label><input type="text" id="newsTitel" required placeholder="z.B. UCP v2.1 Update"></div>
+                <div class="form-group"><label>Kategorie</label>
+                    <select id="newsKategorie">
+                        <option value="Update">Update</option>
+                        <option value="Neu">Neu</option>
+                        <option value="Fix">Bugfix</option>
+                        <option value="Info">Information</option>
+                        <option value="Wartung">Wartung</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Beschreibung *</label><textarea id="newsBeschreibung" rows="4" required placeholder="Was wurde gemacht?"></textarea></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelNews">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Veröffentlichen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalAusbildung">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="ausbildungModalTitle">Neue Ausbildung</h3><button class="modal-close" id="closeModalAusbildung">&times;</button></div>
+            <form id="formAusbildung">
+                <div class="form-group"><label>Titel *</label><input type="text" id="ausbTitel" required placeholder="z.B. Grundausbildung Waffen"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Datum *</label><input type="date" id="ausbDatum" required></div>
+                    <div class="form-group"><label>Uhrzeit</label><input type="time" id="ausbZeit" value="10:00"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Status</label>
+                        <select id="ausbStatus">
+                            <option value="Geplant">Geplant</option>
+                            <option value="Laufend">Laufend</option>
+                            <option value="Abgeschlossen">Abgeschlossen</option>
+                            <option value="Abgesagt">Abgesagt</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Typ</label>
+                        <select id="ausbTyp">
+                            <option value="Grundausbildung">Grundausbildung</option>
+                            <option value="Waffenkunde">Waffenkunde</option>
+                            <option value="Fahrsicherheitstraining">Fahrsicherheitstraining</option>
+                            <option value="Leitstelle">Leitstelle</option>
+                            <option value="Overwatch">Overwatch</option>
+                            <option value="EL & VF">EL & VF</option>
+                            <option value="Grenzkontrolle">Grenzkontrolle</option>
+                            <option value="Tauchergrundausbildung">Tauchergrundausbildung</option>
+                            <option value="Ortskunde">Ortskunde</option>
+                            <option value="Abhandlungsschulung">Abhandlungsschulung</option>
+                            <option value="Motorradausbildung">Motorradausbildung</option>
+                            <option value="Langwaffenausbildung">Langwaffenausbildung</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label>Plaetze</label><input type="number" id="ausbPlaetze" min="1" max="50" value="10"></div>
+                <div class="form-group"><label>Beschreibung</label><textarea id="ausbBeschreibung" rows="3" placeholder="Details zur Ausbildung..."></textarea></div>
+                <div class="form-group"><label>Teilnehmer (einer pro Zeile)</label><textarea id="ausbTeilnehmer" rows="3" placeholder="z.B. Max Mustermann&#10;John Doe"></textarea></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelAusbildung">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalTeilnehmerNotizen">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="tnNotizenTitle">Teilnehmer bewerten</h3><button class="modal-close" id="closeModalTeilnehmerNotizen">&times;</button></div>
+            <div id="tnNotizenListe"></div>
+            <div class="form-actions" style="margin-top:1rem;">
+                <button type="button" class="btn btn-primary" id="saveTnNotizen">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalAusbStatus">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="ausbStatusTitle">Ausbildungsstatus bearbeiten</h3><button class="modal-close" id="closeModalAusbStatus">&times;</button></div>
+            <div id="ausbStatusListe"></div>
+            <div class="form-actions" style="margin-top:1rem;">
+                <button type="button" class="btn btn-outline" id="cancelAusbStatus">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="saveAusbStatus">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalBericht">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="berichtModalTitle">Neuer Einsatz-Bericht</h3><button class="modal-close" id="closeModalBericht">&times;</button></div>
+            <form id="formBericht">
+                <div class="form-row">
+                    <div class="form-group"><label>Datum *</label><input type="date" id="berDatum" required></div>
+                    <div class="form-group"><label>Uhrzeit *</label><input type="time" id="berZeit" required value="00:00"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Typ *</label>
+                        <select id="berTyp" required>
+                            <option value="Verkehrsunfall">Verkehrsunfall</option>
+                            <option value="Straftat">Straftat</option>
+                            <option value="Notfall">Notfall</option>
+                            <option value="Verkehrskontrolle">Verkehrskontrolle</option>
+                            <option value="Funktionseinsatz">Funktionseinsatz</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Status</label>
+                        <select id="berStatus">
+                            <option value="Offen">Offen</option>
+                            <option value="In Bearbeitung">In Bearbeitung</option>
+                            <option value="Abgeschlossen">Abgeschlossen</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label>Ort *</label><input type="text" id="berOrt" required placeholder="z.B. Route 68, Paleto Bay"></div>
+                <div class="form-group"><label>Beteiligte (einer pro Zeile)</label><textarea id="berBeteiligte" rows="2" placeholder="z.B. Officer Mustermann&#10;Officer Doe"></textarea></div>
+                <div class="form-group"><label>Vorfall *</label><textarea id="berVorfall" rows="3" required placeholder="Was ist passiert?"></textarea></div>
+                <div class="form-group"><label>Massnahmen</label><textarea id="berMassnahmen" rows="3" placeholder="Welche Massnahmen wurden ergriffen?"></textarea></div>
+                <div class="form-group"><label>Aktensignatur</label><input type="text" id="berAktenzeichen" placeholder="z.B. EB-2026-001"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelBericht">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalMediathek">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="medModalTitle">Neuer Mediathek-Eintrag</h3><button class="modal-close" id="closeModalMediathek">&times;</button></div>
+            <form id="formMediathek">
+                <div class="form-group"><label>Titel *</label><input type="text" id="medTitel" required placeholder="z.B. SOP Verkehrsunfall"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Kategorie *</label>
+                        <select id="medKategorie" required>
+                            <option value="Ausbildungsunterlagen">Ausbildungsunterlagen</option>
+                            <option value="SOPs">SOPs</option>
+                            <option value="Gesetze">Gesetze</option>
+                            <option value="Formulare">Formulare</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Autor</label><input type="text" id="medAutor" placeholder="z.B. Sheriff Techniker"></div>
+                </div>
+                <div class="form-group"><label>Inhalt / Beschreibung *</label><textarea id="medInhalt" rows="6" required placeholder="Text, Link oder Beschreibung..."></textarea></div>
+                <div class="form-group"><label>Link (optional)</label><input type="url" id="medLink" placeholder="https://..."></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelMediathek">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalCase">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="caseModalTitle">Neuer Case</h3><button class="modal-close" id="closeModalCase">&times;</button></div>
+            <form id="formCase">
+                <div class="form-row">
+                    <div class="form-group"><label>Falltitel *</label><input type="text" id="caseTitel" required placeholder="z.B. Raub ueberfall 24/7"></div>
+                    <div class="form-group"><label>Aktenzeichen</label><input type="text" id="caseAktenzeichen" placeholder="z.B. CASE-2026-001"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Typ *</label>
+                        <select id="caseTyp" required>
+                            <option value="Kriminalfall">Kriminalfall</option>
+                            <option value="Verbrechen">Verbrechen</option>
+                            <option value="Verkehrsunfall">Verkehrsunfall</option>
+                            <option value="Vermisst">Vermisst</option>
+                            <option value="Undercover">Undercover</option>
+                            <option value="Interner Fall">Interner Fall</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Status</label>
+                        <select id="caseStatus">
+                            <option value="Offen">Offen</option>
+                            <option value="In Bearbeitung">In Bearbeitung</option>
+                            <option value="Abgeschlossen">Abgeschlossen</option>
+                            <option value="Archiviert">Archiviert</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Prioritaet</label>
+                        <select id="casePrioritaet">
+                            <option value="Mittel">Mittel</option>
+                            <option value="Hoch">Hoch</option>
+                            <option value="Niedrig">Niedrig</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Fallfuehrer *</label><input type="text" id="caseFallfuehrer" required placeholder="z.B. Sheriff Techniker"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Erstellt am</label><input type="date" id="caseDatum"></div>
+                    <div class="form-group"><label>Ort</label><input type="text" id="caseOrt" placeholder="z.B. Paleto Bay"></div>
+                </div>
+                <div class="form-group"><label>Beteiligte (einer pro Zeile)</label><textarea id="caseBeteiligte" rows="2" placeholder="Verdaechtige, Zeugen, Opfer..."></textarea></div>
+                <div class="form-group"><label>Fallbeschreibung *</label><textarea id="caseBeschreibung" rows="4" required placeholder="Was ist passiert? Details zum Fall..."></textarea></div>
+                <div class="form-group"><label>Notizen / Ermittlungen</label><textarea id="caseNotizen" rows="4" placeholder="Aktuelle Ermittlungen, Hinweise, To-Do's..."></textarea></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelCase">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalCaseDetail">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="caseDetailTitle">Case Details</h3><button class="modal-close" id="closeModalCaseDetail">&times;</button></div>
+            <div id="caseDetailContent" class="case-detail-content"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalAkte">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="akteModalTitle">Neue Akte</h3><button class="modal-close" id="closeModalAkte">&times;</button></div>
+            <form id="formAkte">
+                <div class="form-group"><label>Aktenname *</label><input type="text" id="akteTitel" required placeholder="z.B. Fallakte Max Mustermann"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Kategorie *</label>
+                        <select id="akteKategorie" required>
+                            <option value="Fallakte">Fallakte</option>
+                            <option value="Vermerk">Vermerk</option>
+                            <option value="Protokoll">Protokoll</option>
+                            <option value="Formular">Formular</option>
+                            <option value="Dokumentation">Dokumentation</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Status</label>
+                        <select id="akteStatus">
+                            <option value="Aktuell">Aktuell</option>
+                            <option value="Archiviert">Archiviert</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Aktenzeichen</label><input type="text" id="akteAktenzeichen" placeholder="z.B. AK-2026-001"></div>
+                    <div class="form-group"><label>Verknüpfter Case</label>
+                        <select id="akteCase">
+                            <option value="">Kein Case</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Erstellt von</label><input type="text" id="akteAutor" placeholder="z.B. Sheriff Techniker"></div>
+                    <div class="form-group"><label>Datum</label><input type="date" id="akteDatum"></div>
+                </div>
+                <div class="form-group"><label>Beschreibung / Inhalt *</label><textarea id="akteInhalt" rows="6" required placeholder="Inhalt der Akte..."></textarea></div>
+                <div class="form-group"><label>Link / Dateiname (optional)</label><input type="text" id="akteLink" placeholder="z.B. dossier_raub_24-7.pdf"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelAkte">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalAkteDetail">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="akteDetailTitle">Akten-Details</h3><button class="modal-close" id="closeModalAkteDetail">&times;</button></div>
+            <div id="akteDetailContent"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalPA">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="paModalTitle">Neuer Personalakte-Eintrag</h3><button class="modal-close" id="closeModalPA">&times;</button></div>
+            <form id="formPA">
+                <div class="form-group"><label>Mitarbeiter *</label>
+                    <select id="paMitarbeiter" required>
+                        <option value="">Mitarbeiter waehlen...</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Typ *</label>
+                        <select id="paTyp" required>
+                            <option value="Abmahnung">Abmahnung</option>
+                            <option value="Befoerderung">Befoerderung</option>
+                            <option value="Notiz">Notiz</option>
+                            <option value="Verweis">Verweis</option>
+                            <option value="Belobigung">Belobigung</option>
+                            <option value="Urlaub">Urlaub</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Datum *</label><input type="date" id="paDatum" required></div>
+                </div>
+                <div class="form-group"><label>Von (Ersteller) *</label><input type="text" id="paErsteller" required placeholder="z.B. Sheriff Techniker"></div>
+                <div class="form-group"><label>Betreff *</label><input type="text" id="paBetreff" required placeholder="z.B. Dienstfaulheit beim Einsatz XY"></div>
+                <div class="form-group"><label>Inhalt *</label><textarea id="paInhalt" rows="5" required placeholder="Details zum Vorfall..."></textarea></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelPA">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalPADetail">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3 id="paDetailTitle">Personalakte-Details</h3><button class="modal-close" id="closeModalPADetail">&times;</button></div>
+            <div id="paDetailContent"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalNachricht">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="nachrichtModalTitle">Neue Nachricht</h3><button class="modal-close" id="closeModalNachricht">&times;</button></div>
+            <form id="formNachricht">
+                <div class="form-group"><label>An *</label>
+                    <select id="msgEmpfaenger" required>
+                        <option value="">Empfaeger waehlen...</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Betreff *</label><input type="text" id="msgBetreff" required placeholder="z.B. Ausbildungsergebnis"></div>
+                <div class="form-group"><label>Nachricht *</label><textarea id="msgText" rows="6" required placeholder="Ihre Nachricht..."></textarea></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelNachricht">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Senden</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalNachrichtLesen">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="lesenBetreff">Nachricht</h3><button class="modal-close" id="closeModalNachrichtLesen">&times;</button></div>
+            <div id="lesenContent" class="nachricht-content"></div>
+            <div class="form-actions" style="margin-top:1rem;">
+                <button type="button" class="btn btn-outline" id="lesenClose">Schliessen</button>
+                <button type="button" class="btn btn-primary" id="lesenAntworten"><i class="fas fa-reply"></i> Antworten</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalAdminPanel">
+        <div class="modal-content modal-lg">
+            <div class="modal-header"><h3><i class="fas fa-gear"></i> Admin-Panel</h3><button class="modal-close" id="closeModalAdminPanel">&times;</button></div>
+            <div class="admin-panel-content">
+                <!-- System -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-server"></i> System</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>UCP Name</label><input type="text" id="adminUcpName" placeholder="z.B. SD-UCP"></div>
+                        <div class="form-group"><label>Version</label><input type="text" id="adminUcpVersion" placeholder="z.B. 3.0"></div>
+                    </div>
+                    <div class="form-group"><label>Footer Text</label><input type="text" id="adminFooter" placeholder="z.B. Protect and Serve"></div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveSystem"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Banner -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-image"></i> Dashboard Banner</h4>
+                    <div class="form-group"><label>Banner-Bild URL</label><input type="text" id="adminBannerUrl" placeholder="z.B. Dashboard bild.png"></div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveBanner"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Titel -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-heading"></i> Dashboard Titel</h4>
+                    <div class="form-group"><label>Titel</label><input type="text" id="adminDashTitle" placeholder="z.B. Blaine County Sheriff Department"></div>
+                    <div class="form-group"><label>Untertitel</label><input type="text" id="adminDashSubtitle" placeholder="z.B. Protect and Serve"></div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveTitle"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Mitarbeiter Defaults -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-user-gear"></i> Mitarbeiter Standardwerte</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>Standard-Abteilung</label>
+                            <select id="adminDefAbteilung">
+                                <option value="">Keine</option>
+                                <option value="VHD">VHD</option><option value="SEB">SEB</option>
+                                <option value="DTU">DTU</option><option value="K-9">K-9</option>
+                                <option value="Patrol">Patrol</option><option value="Command">Command</option>
+                                <option value="SWAT">SWAT</option><option value="Air">Air</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Standard-Rang</label><select id="adminDefRang"></select></div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveDefaults"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Ausbildungs-Typen -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-graduation-cap"></i> Ausbildungs-Typen verwalten</h4>
+                    <div id="adminAusbTypenListe"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeuerAusbTyp" placeholder="Neuer Typ..." class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddAusbTyp"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Leitstelle -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-tower-broadcast"></i> Leitstelle</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>Max. aktive Officer</label><input type="number" id="adminMaxOfficers" min="1" max="50" placeholder="z.B. 10"></div>
+                        <div class="form-group"><label>Standard-Status</label>
+                            <select id="adminDefaultCode">
+                                <option value="1">1 - Im Dienst</option>
+                                <option value="2">2 - Auf Einsatz</option>
+                                <option value="3">3 - Auf Streife</option>
+                                <option value="6">6 - Ausser Dienst</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveLeitstelle"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Abteilungen -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-building"></i> Abteilungen verwalten</h4>
+                    <div id="adminAbteilungenListe"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeueAbteilung" placeholder="Neue Abteilung..." class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddAbteilung"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Funktionen -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-briefcase"></i> Funktionen verwalten</h4>
+                    <div id="adminFunktionenListe"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeueFunktion" placeholder="Neue Funktion..." class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddFunktion"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Benutzer -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-users-gear"></i> Benutzer verwalten</h4>
+                    <div id="adminUsersListe"></div>
+                    <div class="admin-new-user" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
+                        <h5 style="font-size:0.8125rem;margin-bottom:0.5rem;color:var(--text-muted);"><i class="fas fa-user-plus"></i> Neuen Benutzer erstellen</h5>
+                        <div class="form-row">
+                            <div class="form-group"><label>Benutzername *</label><input type="text" id="adminNewUsername" placeholder="z.B. max.mustermann"></div>
+                            <div class="form-group"><label>Passwort *</label><input type="text" id="adminNewPassword" placeholder="z.B. passwort123"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Vor- Nachname</label><input type="text" id="adminNewFullName" placeholder="z.B. Max Mustermann"></div>
+                            <div class="form-group"><label>Dienstnummer</label><input type="text" id="adminNewDienstnr" placeholder="z.B. 1001"></div>
+                        </div>
+                        <div class="form-group"><label>Rang</label><select id="adminNewRang"></select></div>
+                        <button class="btn btn-sm btn-primary" id="adminCreateUser"><i class="fas fa-user-plus"></i> Benutzer erstellen</button>
+                    </div>
+                </div>
+                <!-- Rang-Verwaltung -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-shield-halved"></i> Raenge verwalten</h4>
+                    <div id="adminRangListe"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeuerRang" placeholder="z.B. 19 - Trainee" class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddRang"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Rechnungs-Kategorien -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-receipt"></i> Rechnungs-Kategorien</h4>
+                    <div id="adminRechnungsKats"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeueRechnKat" placeholder="Neue Kategorie..." class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddRechnKat"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Termin-Kategorien -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-calendar-days"></i> Termin-Kategorien</h4>
+                    <div id="adminTerminKats"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeueTerminKat" placeholder="Neue Kategorie..." class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddTerminKat"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Streifen Defaults -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-car"></i> Streifen-Einstellungen</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>Max. Plaetze pro Streife</label><input type="number" id="adminStreifeMax" min="1" max="10" placeholder="z.B. 4"></div>
+                        <div class="form-group"><label>Standard-Fahrzeug</label><input type="text" id="adminStreifeFzg" placeholder="z.B. Stanier"></div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveStreife"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Design -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-palette"></i> Design</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>Akzentfarbe</label>
+                            <select id="adminAccentColor">
+                                <option value="#3b82f6">Blau</option>
+                                <option value="#10b981">Gruen</option>
+                                <option value="#ef4444">Rot</option>
+                                <option value="#f59e0b">Gelb</option>
+                                <option value="#8b5cf6">Lila</option>
+                                <option value="#ec4899">Rosa</option>
+                                <option value="#06b6d4">Cyan</option>
+                                <option value="#f97316">Orange</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Sidebar-Hintergrund</label>
+                            <select id="adminSidebarStyle">
+                                <option value="dark">Dunkel</option>
+                                <option value="darker">Noch dunkler</option>
+                                <option value="blue">Blau</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveDesign"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Willkommen -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-hand-wave"></i> Willkommensnachricht</h4>
+                    <div class="form-group"><label>Nachricht (wird nach dem Login angezeigt)</label><textarea id="adminWillkommen" rows="2" placeholder="z.B. Willkommen im SD-UCP!"></textarea></div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveWillkommen"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Miranda-Rechte -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-gavel"></i> Miranda-Rechte</h4>
+                    <div class="form-group"><label>Standard-Text</label><textarea id="adminMiranda" rows="3" placeholder="Sie haben das Recht zu schweigen..."></textarea></div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveMiranda"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Waffenlizenzen -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-gun"></i> Waffenlizenzen</h4>
+                    <div id="adminWaffenListe"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeueWaffe" placeholder="Neue Lizenz..." class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddWaffe"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Illegale Gueter -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-ban"></i> Illegale Gueter</h4>
+                    <div id="adminIllegalListe"></div>
+                    <div class="form-row" style="margin-top:0.75rem">
+                        <input type="text" id="adminNeuesIllegal" placeholder="Neues Gut..." class="search-input" style="flex:1">
+                        <button class="btn btn-sm btn-primary" id="adminAddIllegal"><i class="fas fa-plus"></i> Hinzufuegen</button>
+                    </div>
+                </div>
+                <!-- Schichtplan -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-clock"></i> Schichtplan</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>Fruehschicht</label><input type="text" id="adminShiftFrueh" placeholder="z.B. 06:00 - 14:00"></div>
+                        <div class="form-group"><label>Spaetschicht</label><input type="text" id="adminShiftSpaet" placeholder="z.B. 14:00 - 22:00"></div>
+                        <div class="form-group"><label>Nachtschicht</label><input type="text" id="adminShiftNacht" placeholder="z.B. 22:00 - 06:00"></div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveShift"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- System-Optionen -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-sliders"></i> System-Optionen</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>Toast-Dauer (ms)</label><input type="number" id="adminToastDauer" min="1000" max="10000" step="500" placeholder="2500"></div>
+                        <div class="form-group"><label>Session-Timeout (Min.)</label><input type="number" id="adminSessionTimeout" min="0" max="480" placeholder="0 = deaktiviert"></div>
+                    </div>
+                    <div class="form-group" style="margin-top:0.5rem">
+                        <label><input type="checkbox" id="adminRegistrierung" style="margin-right:0.5rem"> Registrierung erlauben</label>
+                    </div>
+                    <button class="btn btn-sm btn-primary" id="adminSaveSystemOpts"><i class="fas fa-save"></i> Speichern</button>
+                </div>
+                <!-- Neuigkeiten -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-newspaper"></i> Neuigkeiten verwalten</h4>
+                    <div id="adminNewsListe"></div>
+                    <button class="btn btn-sm btn-primary" id="adminAddNews" style="margin-top:0.75rem"><i class="fas fa-plus"></i> Neue Neuigkeit</button>
+                </div>
+                <!-- Daten -->
+                <div class="admin-section">
+                    <h4><i class="fas fa-database"></i> Daten verwalten</h4>
+                    <div class="admin-data-btns">
+                        <button class="btn btn-sm btn-outline" id="adminExportData"><i class="fas fa-download"></i> Alle Daten exportieren</button>
+                        <button class="btn btn-sm btn-outline" id="adminImportData"><i class="fas fa-upload"></i> Daten importieren</button>
+                        <button class="btn btn-sm btn-danger" id="adminResetData"><i class="fas fa-trash"></i> Alle Daten zuruecksetzen</button>
+                    </div>
+                    <input type="file" id="adminImportFile" accept=".json" style="display:none">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="ucp-data.js"></script>
+    <script src="ucp.js"></script>
+</body>
+</html>
