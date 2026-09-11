@@ -89,12 +89,14 @@
 
         document.getElementById('formRegister').addEventListener('submit', (e) => {
             e.preventDefault();
+            const rangKeys = Object.keys(RANG_HIERARCHIE);
+            const defaultRang = rangKeys[rangKeys.length - 1];
             const data = {
                 username: document.getElementById('regUser').value.trim(),
                 password: document.getElementById('regPass').value,
                 fullName: document.getElementById('regFullName').value.trim(),
                 dienstnr: document.getElementById('regDienstnr').value.trim(),
-                rang: document.getElementById('regRang').value
+                rang: defaultRang
             };
             if (users.find(u => u.username === data.username)) { showLoginError('Benutzername bereits vergeben.'); return; }
             users.push({ ...data, createdAt: new Date().toISOString() });
