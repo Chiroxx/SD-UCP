@@ -64,10 +64,6 @@
 
         document.querySelectorAll('.login-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                if (tab.dataset.tab === 'register' && users.length > 0) {
-                    showLoginError('Registrierung ist deaktiviert. Nur Admins koennen Konten erstellen.');
-                    return;
-                }
                 document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
@@ -3009,6 +3005,16 @@
             document.getElementById('newsModalTitle').textContent = 'Neue Neuigkeit';
             closeModal('modalAdminPanel');
             openModal('modalNews');
+        });
+
+        document.getElementById('adminExportUsers')?.addEventListener('click', () => {
+            const data = { ucp_users: users };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `ucp-users-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showToast('Benutzer exportiert! Datei an Kollegen senden.');
         });
 
         document.getElementById('adminExportData')?.addEventListener('click', () => {

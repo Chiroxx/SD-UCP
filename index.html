@@ -55,6 +55,12 @@
                 <button type="submit" class="btn btn-primary btn-full">Konto erstellen</button>
             </form>
             <div id="loginError" class="login-error"></div>
+            <div style="margin-top:1rem;text-align:center;">
+                <input type="file" id="loginImportFile" accept=".json" style="display:none">
+                <button type="button" class="btn btn-sm btn-outline" id="loginImportBtn" style="font-size:0.75rem;opacity:0.6;">
+                    <i class="fas fa-upload"></i> Account-Daten importieren
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1607,10 +1613,12 @@
                 <div class="admin-section">
                     <h4><i class="fas fa-database"></i> Daten verwalten</h4>
                     <div class="admin-data-btns">
+                        <button class="btn btn-sm btn-primary" id="adminExportUsers"><i class="fas fa-users"></i> Benutzer exportieren</button>
                         <button class="btn btn-sm btn-outline" id="adminExportData"><i class="fas fa-download"></i> Alle Daten exportieren</button>
                         <button class="btn btn-sm btn-outline" id="adminImportData"><i class="fas fa-upload"></i> Daten importieren</button>
                         <button class="btn btn-sm btn-danger" id="adminResetData"><i class="fas fa-trash"></i> Alle Daten zuruecksetzen</button>
                     </div>
+                    <p style="font-size:0.7rem;color:var(--text-muted);margin-top:0.5rem;">"Benutzer exportieren" erstellt eine JSON-Datei die dein Kollege auf dem Login-Screen importieren kann.</p>
                     <input type="file" id="adminImportFile" accept=".json" style="display:none">
                 </div>
             </div>
