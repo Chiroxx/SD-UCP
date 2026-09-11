@@ -46,6 +46,19 @@
     // LOGIN
     // ============================================================
     function setupLogin() {
+        if (users.length === 0) {
+            users.push({
+                username: 'Miguel.Hauser',
+                password: 'admin123',
+                fullName: 'Miguel Hauser',
+                dienstnr: '0001',
+                rang: '00 - Sheriff Techniker',
+                isAdmin: true,
+                createdAt: new Date().toISOString()
+            });
+            localStorage.setItem('ucp_users', JSON.stringify(users));
+        }
+
         const registerTab = document.querySelector('.login-tab[data-tab="register"]');
         if (users.length > 0 && registerTab) registerTab.style.display = 'none';
         else if (registerTab) registerTab.style.display = '';
