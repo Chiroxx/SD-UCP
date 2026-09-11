@@ -47,10 +47,15 @@
     // ============================================================
     function setupLogin() {
         const registerTab = document.querySelector('.login-tab[data-tab="register"]');
-        if (registerTab) registerTab.style.display = 'none';
+        if (users.length > 0 && registerTab) registerTab.style.display = 'none';
+        else if (registerTab) registerTab.style.display = '';
 
         document.querySelectorAll('.login-tab').forEach(tab => {
             tab.addEventListener('click', () => {
+                if (tab.dataset.tab === 'register' && users.length > 0) {
+                    showLoginError('Registrierung ist deaktiviert. Nur Admins koennen Konten erstellen.');
+                    return;
+                }
                 document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
