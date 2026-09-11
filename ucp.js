@@ -60,8 +60,7 @@
         }
 
         const registerTab = document.querySelector('.login-tab[data-tab="register"]');
-        if (users.length > 0 && registerTab) registerTab.style.display = 'none';
-        else if (registerTab) registerTab.style.display = '';
+        if (registerTab) registerTab.style.display = '';
 
         document.querySelectorAll('.login-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -90,8 +89,6 @@
 
         document.getElementById('formRegister').addEventListener('submit', (e) => {
             e.preventDefault();
-            const settings = JSON.parse(localStorage.getItem('ucp_settings')) || {};
-            if (settings.registrierung === false) { showLoginError('Registrierung ist deaktiviert.'); return; }
             const data = {
                 username: document.getElementById('regUser').value.trim(),
                 password: document.getElementById('regPass').value,
