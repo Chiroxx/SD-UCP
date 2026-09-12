@@ -160,7 +160,13 @@
 
     function isAdmin() { return currentUser && getRankLevel(currentUser.rang) <= 4; }
     function canManageMitarbeiter() { return currentUser && getRankLevel(currentUser.rang) <= 9; }
-    function canManageUnits() { return currentUser && getRankLevel(currentUser.rang) <= 4; }
+    function canManageUnits() {
+        if (!currentUser) return false;
+        const myLevel = getRankLevel(currentUser.rang);
+        if (myLevel <= 4) return true;
+        return hasFunktion('Leitstelle') || hasFunktion('Einheitenleitung');
+    }
+    function isLeadership() { return currentUser && getRankLevel(currentUser.rang) <= 4; }
     function isUnitLeader(idx) { return currentUser && units[idx] && units[idx].leiter === (currentUser.fullName || currentUser.username); }
     function canEditUnit(idx) { return canManageUnits() || isUnitLeader(idx); }
 
@@ -193,6 +199,13 @@
         const myLevel = getRankLevel(currentUser.rang);
         if (myLevel <= 4) return true;
         return hasFunktion('Personalabteilung');
+    }
+
+    function canAccessKalender() {
+        if (!currentUser) return false;
+        const myLevel = getRankLevel(currentUser.rang);
+        if (myLevel <= 4) return true;
+        return hasFunktion('Ausbilder') || hasFunktion('Personalabteilung');
     }
 
     // ============================================================
@@ -282,6 +295,7 @@
         navData.forEach((item, i) => {
             if (item.id === 'ausbildung' && !canAccessAusbildung()) return;
             if (item.id === 'personalakten' && !canAccessPersonalakten()) return;
+            if (item.id === 'kalender' && !canAccessKalender()) return;
             const sideItem = document.createElement('div');
             sideItem.className = 'nav-item' + (i === 0 ? ' active' : '');
             sideItem.dataset.view = item.id;
@@ -306,7 +320,10 @@
         document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
         const mod = document.getElementById('module-' + viewId);
         if (mod) mod.classList.add('active');
-        if (viewId === 'kalender') { renderCalendar(); loadTermineListe(); }
+        if (viewId === 'kalender') {
+            if (!canAccessKalender()) { showToast('Keine Berechtigung fuer Kalender!', 'error'); switchView('dashboard'); return; }
+            renderCalendar(); loadTermineListe();
+        }
         if (viewId === 'ausbildung') {
             if (!canAccessAusbildung()) { showToast('Keine Berechtigung fuer Ausbildung!', 'error'); switchView('dashboard'); return; }
             loadAusbildungen();
@@ -784,7 +801,7 @@
             </div>` : ''}
             <div class="case-actions">
                 <button class="btn btn-sm btn-primary" onclick="UCP.editCase(${i})"><i class="fas fa-pen"></i> Bearbeiten</button>
-                <button class="btn btn-sm btn-danger" onclick="UCP.removeCase(${i})"><i class="fas fa-trash"></i> Loeschen</button>
+                ${isLeadership() ? `<button class="btn btn-sm btn-danger" onclick="UCP.removeCase(${i})"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
             </div>`;
         openModal('modalCaseDetail');
     };
@@ -912,7 +929,7 @@
             </div>` : ''}
             <div class="case-actions">
                 <button class="btn btn-sm btn-primary" onclick="UCP.editAkte(${i})"><i class="fas fa-pen"></i> Bearbeiten</button>
-                <button class="btn btn-sm btn-danger" onclick="UCP.removeAkte(${i})"><i class="fas fa-trash"></i> Loeschen</button>
+                ${isLeadership() ? `<button class="btn btn-sm btn-danger" onclick="UCP.removeAkte(${i})"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
             </div>`;
         openModal('modalAkteDetail');
     };
@@ -1383,7 +1400,7 @@
                     ${beteiligte.length > 0 ? `<div class="ausb-details"><strong>Beteiligte:</strong> ${beteiligte.map(t => esc(t)).join(', ')}</div>` : ''}
                     <div class="ausb-actions">
                         <button class="btn btn-sm btn-primary" onclick="UCP.editBericht(${origIdx})"><i class="fas fa-pen"></i> Bearbeiten</button>
-                        <button class="btn btn-sm btn-danger" onclick="UCP.removeBericht(${origIdx})"><i class="fas fa-trash"></i> Loeschen</button>
+                        ${isLeadership() ? `<button class="btn btn-sm btn-danger" onclick="UCP.removeBericht(${origIdx})"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
                     </div>
                 </div>`;
         }).join('');
@@ -2170,7 +2187,7 @@
             </div>
             ${canEditUnitNow ? `<div class="detail-actions">
                 <button class="btn btn-outline" onclick="UCP.editUnit(${i})"><i class="fas fa-pen"></i> Bearbeiten</button>
-                ${canManageUnits() ? `<button class="btn btn-danger" onclick="UCP.removeUnit(${i}); closeModal('modalUnitDetail');"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
+                ${isLeadership() ? `<button class="btn btn-danger" onclick="UCP.removeUnit(${i}); closeModal('modalUnitDetail');"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
             </div>` : ''}`;
         openModal('modalUnitDetail');
     };
@@ -2432,7 +2449,7 @@
                     <div class="termin-actions">
                         <button class="btn btn-sm btn-outline" onclick="UCP.showTerminDetail('${t.datum}', ${origIdx})"><i class="fas fa-info-circle"></i></button>
                         ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="UCP.editTermin(${origIdx})"><i class="fas fa-pen"></i></button>` : ''}
-                        ${canEdit ? `<button class="btn btn-sm btn-danger" onclick="UCP.removeTermin(${origIdx})"><i class="fas fa-trash"></i></button>` : ''}
+                        ${canEdit && isLeadership() ? `<button class="btn btn-sm btn-danger" onclick="UCP.removeTermin(${origIdx})"><i class="fas fa-trash"></i></button>` : ''}
                     </div>
                 </div>`;
         }).join('');
@@ -2458,7 +2475,7 @@
             </div>
             ${canEdit ? `<div class="termin-detail-actions">
                 <button class="btn btn-outline" onclick="UCP.editTermin(${idx}); closeModal('modalTerminDetail');"><i class="fas fa-pen"></i> Bearbeiten</button>
-                <button class="btn btn-danger" onclick="UCP.removeTermin(${idx}); closeModal('modalTerminDetail');"><i class="fas fa-trash"></i> Loeschen</button>
+                ${isLeadership() ? `<button class="btn btn-danger" onclick="UCP.removeTermin(${idx}); closeModal('modalTerminDetail');"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
             </div>` : ''}`;
         openModal('modalTerminDetail');
     };
@@ -3576,6 +3593,7 @@
             ${person.notizen ? `<div style="margin-top:0.5rem;padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Notizen</span><br><span style="color:var(--text-primary);">${esc(person.notizen)}</span></div>` : ''}
         `;
         renderPersonenAkten(person);
+        document.getElementById('btnDeletePerson').style.display = isLeadership() ? '' : 'none';
         document.getElementById('personenDetailOverlay').style.display = 'block';
     }
 
@@ -3598,7 +3616,7 @@
                     </div>
                     <div style="display:flex;gap:0.3rem;">
                         <button class="btn btn-sm btn-outline" onclick="UCP.editPersonenAkte(${idx})"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-sm btn-danger" onclick="UCP.deletePersonenAkte(${idx})"><i class="fas fa-trash"></i></button>
+                        ${isLeadership() ? `<button class="btn btn-sm btn-danger" onclick="UCP.deletePersonenAkte(${idx})"><i class="fas fa-trash"></i></button>` : ''}
                     </div>
                 </div>
                 <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;display:flex;gap:1rem;flex-wrap:wrap;">
