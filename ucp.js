@@ -293,7 +293,6 @@
         ];
 
         navData.forEach((item, i) => {
-            if (item.id === 'ausbildung' && !canAccessAusbildung()) return;
             if (item.id === 'personalakten' && !canAccessPersonalakten()) return;
             if (item.id === 'kalender' && !canAccessKalender()) return;
             const sideItem = document.createElement('div');
@@ -325,7 +324,6 @@
             renderCalendar(); loadTermineListe();
         }
         if (viewId === 'ausbildung') {
-            if (!canAccessAusbildung()) { showToast('Keine Berechtigung fuer Ausbildung!', 'error'); switchView('dashboard'); return; }
             loadAusbildungen();
         }
         if (viewId === 'einsatzberichte') { loadBerichte(); }
@@ -549,6 +547,11 @@
             const tnNotizen = a.teilnehmerNotizen || {};
             const zeitStr = a.zeit ? a.zeit + ' Uhr' : '';
             const canEdit = canAccessAusbildung();
+            const myName = currentUser?.fullName || currentUser?.username || '';
+            const isAlreadySignedUp = tn.includes(myName);
+            const spotsLeft = (a.plaetze || 0) - tn.length;
+            const canSignUp = !canEdit && !isAlreadySignedUp && spotsLeft > 0 && a.status !== 'Abgeschlossen' && a.status !== 'Abgesagt';
+            const canUnsign = !canEdit && isAlreadySignedUp && a.status !== 'Abgeschlossen' && a.status !== 'Abgesagt';
             const tnHtml = tn.length > 0 ? tn.map(t => {
                 const n = tnNotizen[t] || {};
                 const statusBadge = n.status === 'bestanden' ? '<span style="color:var(--accent-green);font-size:0.7rem;font-weight:600;"><i class="fas fa-check-circle"></i> Bestanden</span>'
@@ -568,17 +571,47 @@
                         </div>
                     </div>
                     ${a.beschreibung ? `<div class="ausb-details"><p>${esc(a.beschreibung)}</p></div>` : ''}
+                    ${a.ort ? `<div class="ausb-details"><p><i class="fas fa-map-marker-alt"></i> ${esc(a.ort)}</p></div>` : ''}
                     ${tn.length > 0 ? `<div class="ausb-details"><strong>Teilnehmer:</strong> ${tnHtml}</div>` : ''}
                     ${canEdit && tn.length > 0 ? `<div class="ausb-actions">
                         <button class="btn btn-sm btn-primary" onclick="UCP.showTeilnehmerNotizen(${origIdx})"><i class="fas fa-clipboard-check"></i> Teilnehmer bewerten</button>
                     </div>` : ''}
                     <div class="ausb-actions">
-                        <button class="btn btn-sm btn-primary" onclick="UCP.editAusbildung(${origIdx})"><i class="fas fa-pen"></i> Bearbeiten</button>
-                        <button class="btn btn-sm btn-danger" onclick="UCP.removeAusbildung(${origIdx})"><i class="fas fa-trash"></i> Loeschen</button>
+                        ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="UCP.editAusbildung(${origIdx})"><i class="fas fa-pen"></i> Bearbeiten</button>` : ''}
+                        ${canEdit ? `<button class="btn btn-sm btn-danger" onclick="UCP.removeAusbildung(${origIdx})"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
+                        ${canSignUp ? `<button class="btn btn-sm btn-primary" onclick="UCP.signupAusbildung(${origIdx})"><i class="fas fa-user-plus"></i> Teilnehmen (${spotsLeft} Plaetze frei)</button>` : ''}
+                        ${canUnsign ? `<button class="btn btn-sm btn-outline" onclick="UCP.unsignAusbildung(${origIdx})"><i class="fas fa-user-minus"></i> Abmelden</button>` : ''}
+                        ${isAlreadySignedUp && !canEdit ? `<span style="color:var(--accent-green);font-size:0.8rem;font-weight:600;"><i class="fas fa-check-circle"></i> Angemeldet</span>` : ''}
                     </div>
                 </div>`;
         }).join('');
     }
+
+    window.UCP.signupAusbildung = function(idx) {
+        const a = ausbildungen[idx];
+        if (!a) return;
+        const myName = currentUser?.fullName || currentUser?.username;
+        if (!myName) return;
+        if (!a.teilnehmer) a.teilnehmer = [];
+        if (a.teilnehmer.includes(myName)) { showToast('Bereits angemeldet!', 'error'); return; }
+        if (a.teilnehmer.length >= (a.plaetze || 0)) { showToast('Keine Plaetze mehr frei!', 'error'); return; }
+        a.teilnehmer.push(myName);
+        localStorage.setItem('ucp_ausbildungen', JSON.stringify(ausbildungen));
+        loadAusbildungen();
+        showToast('Erfolgreich angemeldet!');
+    };
+
+    window.UCP.unsignAusbildung = function(idx) {
+        const a = ausbildungen[idx];
+        if (!a) return;
+        const myName = currentUser?.fullName || currentUser?.username;
+        if (!myName) return;
+        if (!a.teilnehmer) return;
+        a.teilnehmer = a.teilnehmer.filter(t => t !== myName);
+        localStorage.setItem('ucp_ausbildungen', JSON.stringify(ausbildungen));
+        loadAusbildungen();
+        showToast('Abgemeldet!');
+    };
 
     window.UCP.editAusbildung = function(idx) {
         const a = ausbildungen[idx];
@@ -3128,6 +3161,7 @@
 
         // === AUSBILDUNG ===
         document.getElementById('btnNeueAusbildung')?.addEventListener('click', () => {
+            if (!canAccessAusbildung()) { showToast('Keine Berechtigung!', 'error'); return; }
             document.getElementById('formAusbildung').reset();
             delete document.getElementById('formAusbildung').dataset.editIndex;
             document.getElementById('ausbildungModalTitle').textContent = 'Neue Ausbildung';
@@ -3423,6 +3457,7 @@
 
         // === KALENDER / TERMINE ===
         document.getElementById('btnNeuerTermin')?.addEventListener('click', () => {
+            if (!canAccessKalender()) { showToast('Keine Berechtigung!', 'error'); return; }
             document.getElementById('formTermin').reset();
             delete document.getElementById('formTermin').dataset.editIndex;
             document.getElementById('terminModalTitle').textContent = 'Neuer Termin';

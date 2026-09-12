@@ -58,8 +58,20 @@
         var fields = DB_FIELDS[table];
         if (!fields) return obj;
         var row = {};
+        // id nur uebernehmen wenn es eine gueltige UUID ist
+        if (obj.id && typeof obj.id === 'string' && obj.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            row.id = obj.id;
+        }
         fields.forEach(function(f) {
-            if (obj[f] !== undefined) { row[f] = obj[f]; return; }
+            if (obj[f] !== undefined) {
+                // Leere Strings bei Date-Feldern -> null
+                if (obj[f] === '' && (f === 'geburtstag' || f === 'datum')) {
+                    row[f] = null;
+                    return;
+                }
+                row[f] = obj[f];
+                return;
+            }
             if (f === 'full_name' && obj.fullName) { row[f] = obj.fullName; return; }
             if (f === 'rank' && obj.rang) { row[f] = obj.rang; return; }
             if (f === 'is_admin' && obj.isAdmin !== undefined) { row[f] = obj.isAdmin; return; }
@@ -164,18 +176,31 @@
                 });
 
                 return Promise.all(deleteProms).then(function() {
-                    // 2. Alle aus localStorage einfuegen die eine id haben (aus DB)
-                    var toInsert = data.filter(function(r) { return r.id; }).map(function(r) { return toDBRow(r, table); });
+                    // 2. Alle rows erzeugen
+                    var allRows = data.map(function(r) { return toDBRow(r, table); });
 
-                    // 3. Alle aus localStorage die KEINE id haben (neu) - mit upsert
-                    var toUpsert = data.filter(function(r) { return !r.id; }).map(function(r) { return toDBRow(r, table); });
+                    // Ungueltige id Felder entfernen (nur echte UUIDs erlauben)
+                    var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                    allRows.forEach(function(r) {
+                        if (r.id && !uuidRe.test(r.id)) delete r.id;
+                        // Leere Strings bei Datum/Date-Feldern -> null
+                        Object.keys(r).forEach(function(k) {
+                            if (r[k] === '' && (k.includes('datum') || k.includes('date') || k === 'geburtstag')) {
+                                r[k] = null;
+                            }
+                        });
+                    });
+
+                    // 3. Mit id einfuegen (aus DB), ohne id (neu) separat
+                    var toInsert = allRows.filter(function(r) { return r.id; });
+                    var toInsertNoId = allRows.filter(function(r) { return !r.id; });
 
                     var insertProms = [];
                     if (toInsert.length > 0) {
                         insertProms.push(_s.from(table).insert(toInsert));
                     }
-                    if (toUpsert.length > 0) {
-                        insertProms.push(_s.from(table).insert(toUpsert));
+                    if (toInsertNoId.length > 0) {
+                        insertProms.push(_s.from(table).insert(toInsertNoId));
                     }
 
                     return Promise.all(insertProms).then(function(results) {
