@@ -133,7 +133,7 @@
     }
 
     // ============================================================
-    // SPEICHERN IN DB - Intelligent: Nur Aenderungen
+    // SPEICHERN IN DB - UPDATE + INSERT + DELETE
     // ============================================================
     function saveTableToDB(key) {
         if (!_s || _loading) return Promise.resolve();
@@ -163,35 +163,66 @@
 
             if (!Array.isArray(data)) return Promise.resolve();
 
-            // Alle existierenden Rows aus DB holen
-            return _s.from(table).select('id').then(function(res) {
+            // Alle existierenden Rows aus DB holen (mit allen Feldern fuer Vergleich)
+            return _s.from(table).select('*').then(function(res) {
                 if (res.error) {
                     console.warn('[DB] ' + table + ' select:', res.error.message);
                     return Promise.resolve();
                 }
 
-                var dbIds = (res.data || []).map(function(r) { return r.id; }).filter(Boolean);
+                var dbRows = res.data || [];
+                var dbIds = dbRows.map(function(r) { return r.id; }).filter(Boolean);
                 var uuidRe = UUID_RE;
 
-                // IDs aus localStorage die gueltige UUIDs haben
-                var localIdsWithUuid = data.filter(function(r) { return r.id && uuidRe.test(r.id); }).map(function(r) { return r.id; });
+                // Items aus localStorage mit gueltiger UUID
+                var localWithUuid = data.filter(function(r) { return r.id && uuidRe.test(r.id); });
+                var localIdsWithUuid = localWithUuid.map(function(r) { return r.id; });
 
-                // 1. Loeschen: DB-Ids die NICHT in localStorage sind
+                // 1. LOESCHEN: DB-Ids die NICHT in localStorage sind
                 var toDelete = dbIds.filter(function(id) { return localIdsWithUuid.indexOf(id) === -1; });
                 var deleteProms = toDelete.map(function(id) { return _s.from(table).delete().eq('id', id); });
 
-                // 2. Einfuegen: Items OHNE gueltige UUID (neu erstellt)
+                // 2. UPDATE: Items die in DB UND localStorage existieren (Vergleich)
+                var toUpdate = [];
+                localWithUuid.forEach(function(localItem) {
+                    var dbRow = dbRows.find(function(r) { return r.id === localItem.id; });
+                    if (!dbRow) return;
+                    var dbRowRow = toDBRow(localItem, table);
+                    // Vergleiche ob sich was geaendert hat
+                    var changed = false;
+                    Object.keys(dbRowRow).forEach(function(f) {
+                        if (f === 'id' || f === 'created_at' || f === 'updated_at') return;
+                        var localVal = JSON.stringify(dbRowRow[f]);
+                        var dbVal = JSON.stringify(dbRow[f]);
+                        if (localVal !== dbVal) changed = true;
+                    });
+                    if (changed) {
+                        toUpdate.push(dbRowRow);
+                    }
+                });
+
+                // 3. EINFUEGEN: Items OHNE gueltige UUID (neu erstellt)
                 var toInsert = data.filter(function(r) { return !r.id || !uuidRe.test(r.id); }).map(function(r) { return toDBRow(r, table); });
 
                 return Promise.all(deleteProms).then(function() {
-                    if (toInsert.length === 0) return Promise.resolve();
-                    return _s.from(table).insert(toInsert);
-                }).then(function(res) {
-                    if (res && res.error) {
-                        console.warn('[DB] ' + table + ' insert:', res.error.message);
-                    } else if (toInsert.length > 0) {
-                        console.log('[DB] ' + table + ': ' + toInsert.length + ' neue Zeilen');
+                    var proms = [];
+                    // Updates ausfuehren
+                    toUpdate.forEach(function(row) {
+                        proms.push(_s.from(table).update(row).eq('id', row.id));
+                    });
+                    // Inserts ausfuehren
+                    if (toInsert.length > 0) {
+                        proms.push(_s.from(table).insert(toInsert));
                     }
+                    return Promise.all(proms);
+                }).then(function(results) {
+                    var log = [];
+                    if (toDelete.length > 0) log.push(toDelete.length + ' geloescht');
+                    if (toUpdate.length > 0) log.push(toUpdate.length + ' aktualisiert');
+                    if (toInsert.length > 0) log.push(toInsert.length + ' eingefuegt');
+                    if (log.length > 0) console.log('[DB] ' + table + ': ' + log.join(', '));
+                }).catch(function(e) {
+                    console.warn('[DB] ' + table + ' Fehler:', e.message);
                 });
             });
         } catch(e) {
@@ -322,9 +353,9 @@
                             syncRanks();
                             console.log('[DB] Aktualisiert!');
                         });
-                    }, 10000);
+                    }, 5000);
 
-                    setInterval(saveAllToDB, 60000);
+                    setInterval(saveAllToDB, 30000);
                 });
             });
         } catch(e) { console.warn('[DB] Fehler:', e.message); }

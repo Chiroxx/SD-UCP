@@ -2808,6 +2808,11 @@
             const idx = e.target.dataset.editIndex;
             if (idx !== undefined && idx !== '') {
                 if (!canEditUser(data.rang)) { showToast('Keine Berechtigung fuer diesen Rang!', 'error'); return; }
+                // Rang 00 Sperre: Nur Rang 00 darf Rang 00 vergeben
+                if (getRankLevel(data.rang) === 0 && getRankLevel(currentUser.rang) !== 0) {
+                    showToast('Nur Sheriff Techniker (Rang 00) darf Rang 00 vergeben!', 'error');
+                    return;
+                }
                 mitarbeiter[parseInt(idx)] = { ...mitarbeiter[parseInt(idx)], ...data };
                 // Sync rang + fullName + dienstnr to users table
                 const syncUser = users.find(u => u.username === mitarbeiter[parseInt(idx)].user_id || (u.fullName || u.username) === (mitarbeiter[parseInt(idx)].vorname + ' ' + mitarbeiter[parseInt(idx)].nachname));
