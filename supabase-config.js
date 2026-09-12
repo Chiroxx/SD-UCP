@@ -226,15 +226,16 @@
                 loadAllFromDB(function() {
                     console.log('[DB] Alle Daten aus der Datenbank geladen!');
                     setupDBLogin();
-                    // Alle 30 Sekunden: Erst IN DB speichern (Loeschungen), dann AUS DB laden
-                    setInterval(function() {
-                        saveAllToDB();
-                        setTimeout(function() {
-                            loadAllFromDB(function() {
-                                console.log('[DB] Sync abgeschlossen!');
-                            });
-                        }, 3000);
-                    }, 30000);
+                    // Sofort speichern wenn sich etwas aendert (localStorage Override)
+                    var origSetItem = localStorage.setItem.bind(localStorage);
+                    localStorage.setItem = function(key, value) {
+                        origSetItem(key, value);
+                        if (TABLES[key]) {
+                            saveTableToDB(key);
+                        }
+                    };
+                    // Backup-Sync alle 60 Sekunden
+                    setInterval(saveAllToDB, 60000);
                 });
             });
         } catch(e) {
