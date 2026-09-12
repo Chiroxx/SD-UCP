@@ -263,6 +263,13 @@
                         }
                     };
 
+                    // Alle 30 Sekunden: Daten AUS DB laden (fuer Kollegen)
+                    setInterval(function() {
+                        loadAllFromDB(function() {
+                            console.log('[DB] Aktualisiert!');
+                        });
+                    }, 30000);
+
                     // Backup alle 60 Sekunden
                     setInterval(saveAllToDB, 60000);
                 });
