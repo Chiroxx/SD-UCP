@@ -103,7 +103,7 @@
                     if (table === 'users') {
                         data = deduplicate(data, function(u) { return u.username || ''; });
                     } else if (table === 'mitarbeiter') {
-                        data = deduplicate(data, function(m) { return (m.vorname || '') + '|' + (m.nachname || '') + '|' + (m.dienstnr || ''); });
+                        data = deduplicate(data, function(m) { return (m.vorname || '') + '|' + (m.nachname || '') + '|' + (m.dienstnr || '') + '|' + (m.user_id || ''); });
                     }
                     localStorage.setItem(key, JSON.stringify(data));
                 } else if (res.error) {

@@ -97,6 +97,27 @@
             if (users.find(u => u.username === data.username)) { showLoginError('Benutzername bereits vergeben.'); return; }
             users.push({ ...data, createdAt: new Date().toISOString() });
             localStorage.setItem('ucp_users', JSON.stringify(users));
+
+            // Automatisch in Mitarbeiter-Liste hinzufuegen
+            const nameParts = (data.fullName || data.username).split(' ');
+            const vorname = nameParts[0] || data.username;
+            const nachname = nameParts.slice(1).join(' ') || '';
+            mitarbeiter.push({
+                vorname: vorname,
+                nachname: nachname,
+                dienstnr: data.dienstnr,
+                rang: data.rang,
+                telefon: '',
+                status: 'Aktiv',
+                abteilung: 'Allgemein',
+                funktion: [],
+                notizen: '',
+                user_id: data.username,
+                eintritt: new Date().toLocaleDateString('de-DE'),
+                createdAt: new Date().toISOString()
+            });
+            localStorage.setItem('ucp_mitarbeiter', JSON.stringify(mitarbeiter));
+
             currentUser = users[users.length - 1];
             localStorage.setItem('ucp_currentUser', JSON.stringify(currentUser));
             showApp();

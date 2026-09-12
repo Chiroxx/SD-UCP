@@ -19,7 +19,7 @@
             </div>
             <p class="login-subtitle">Blaine County Sheriff Department</p>
             <div class="login-tabs">
-                <button class="login-tab active" data-tab="login">Anmelden</button>
+                <button class="login-tab active" data-tab="login" style="display:none;"></button>
                 <button class="login-tab" data-tab="register">Registrieren</button>
             </div>
             <form id="formLogin" class="login-form active">
@@ -31,7 +31,7 @@
                     <label>Passwort</label>
                     <input type="password" id="loginPass" required placeholder="Passwort eingeben">
                 </div>
-                <button type="submit" class="btn btn-primary btn-full">Anmelden</button>
+                <button type="submit" class="btn btn-primary btn-full">Einloggen</button>
             </form>
             <form id="formRegister" class="login-form">
                 <div class="form-group">
@@ -55,12 +55,6 @@
                 <button type="submit" class="btn btn-primary btn-full">Konto erstellen</button>
             </form>
             <div id="loginError" class="login-error"></div>
-            <div style="margin-top:1rem;text-align:center;">
-                <input type="file" id="loginImportFile" accept=".json" style="display:none">
-                <button type="button" class="btn btn-sm btn-outline" id="loginImportBtn" style="font-size:0.75rem;opacity:0.6;">
-                    <i class="fas fa-upload"></i> Account-Daten importieren
-                </button>
-            </div>
         </div>
     </div>
 
