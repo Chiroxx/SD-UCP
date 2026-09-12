@@ -247,6 +247,56 @@
     }
 
     // ============================================================
+    // RANG-SYNC: mitarbeiter -> users -> currentUser
+    // ============================================================
+    function syncRanks() {
+        try {
+            var mit = JSON.parse(localStorage.getItem('ucp_mitarbeiter')) || [];
+            var usr = JSON.parse(localStorage.getItem('ucp_users')) || [];
+            var cur = JSON.parse(localStorage.getItem('ucp_currentUser'));
+            var changed = false;
+
+            mit.forEach(function(m) {
+                var matchName = (m.vorname + ' ' + m.nachname).trim();
+                var u = usr.find(function(u) {
+                    return u.username === m.user_id ||
+                        (u.fullName || u.username) === matchName ||
+                        u.dienstnr === m.dienstnr;
+                });
+                if (u) {
+                    if (u.rang !== m.rang) { u.rang = m.rang; changed = true; }
+                    if (u.fullName !== matchName) { u.fullName = matchName; changed = true; }
+                    if (u.dienstnr !== m.dienstnr) { u.dienstnr = m.dienstnr; changed = true; }
+                    if (m.isAdmin !== undefined && u.isAdmin !== m.isAdmin) { u.isAdmin = m.isAdmin; changed = true; }
+                }
+            });
+
+            if (changed) {
+                localStorage.setItem('ucp_users', JSON.stringify(usr));
+                console.log('[DB] Users-Sync: Rang/Status aktualisiert');
+            }
+
+            // Update currentUser too
+            if (cur) {
+                var curUser = usr.find(function(u) { return u.username === cur.username; });
+                if (curUser) {
+                    var curChanged = false;
+                    if (cur.rang !== curUser.rang) { cur.rang = curUser.rang; curChanged = true; }
+                    if (cur.fullName !== curUser.fullName) { cur.fullName = curUser.fullName; curChanged = true; }
+                    if (cur.dienstnr !== curUser.dienstnr) { cur.dienstnr = curUser.dienstnr; curChanged = true; }
+                    if (curUser.isAdmin !== undefined && cur.isAdmin !== curUser.isAdmin) { cur.isAdmin = curUser.isAdmin; curChanged = true; }
+                    if (curChanged) {
+                        localStorage.setItem('ucp_currentUser', JSON.stringify(cur));
+                        console.log('[DB] currentUser-Sync: ' + cur.username + ' -> Rang ' + cur.rang);
+                    }
+                }
+            }
+        } catch(e) {
+            console.warn('[DB] syncRanks Fehler:', e.message);
+        }
+    }
+
+    // ============================================================
     // START
     // ============================================================
     waitForLib(function(supabase) {
@@ -258,6 +308,7 @@
             waitForApp(function() {
                 loadAllFromDB(function() {
                     console.log('[DB] Alle Daten aus der Datenbank geladen!');
+                    syncRanks();
                     setupDBLogin();
 
                     var origSetItem = localStorage.setItem.bind(localStorage);
@@ -267,7 +318,10 @@
                     };
 
                     setInterval(function() {
-                        loadAllFromDB(function() { console.log('[DB] Aktualisiert!'); });
+                        loadAllFromDB(function() {
+                            syncRanks();
+                            console.log('[DB] Aktualisiert!');
+                        });
                     }, 10000);
 
                     setInterval(saveAllToDB, 60000);
