@@ -25,21 +25,21 @@
     };
 
     var DB_FIELDS = {
-        'users': ['id', 'username', 'password', 'full_name', 'dienstnr', 'rank', 'is_admin', 'created_at'],
-        'officers': ['id', 'name', 'dienstnr', 'status', 'einsatzfeld', 'position', 'fahrzeug', 'code', 'updated_at'],
-        'mitarbeiter': ['id', 'vorname', 'nachname', 'dienstnr', 'rang', 'abteilung', 'funktion', 'status', 'eintrittsdatum', 'telefon', 'email', 'adresse', 'geburtstag', 'notfallkontakt', 'ausbildungen', 'user_id'],
-        'cases': ['id', 'titel', 'aktenzeichen', 'typ', 'status', 'prioritaet', 'fallfuehrer', 'ort', 'beteiligte', 'beschreibung', 'notizen', 'erstellt_von', 'created_at'],
-        'akten': ['id', 'aktenzeichen', 'titel', 'kategorie', 'status', 'autor', 'datum', 'inhalt', 'link', 'case_id', 'created_at'],
-        'personalakten': ['id', 'mitarbeiter', 'typ', 'datum', 'ersteller', 'betreff', 'inhalt', 'created_at'],
-        'nachrichten': ['id', 'von', 'an', 'betreff', 'nachricht', 'gelesen', 'created_at'],
-        'termine': ['id', 'titel', 'beschreibung', 'datum', 'uhrzeit', 'typ', 'erstellt_von', 'created_at'],
-        'rechnungen': ['id', 'titel', 'betrag', 'status', 'kategorie', 'bemerkung', 'datum', 'created_at'],
-        'streifen': ['id', 'nummer', 'fahrzeug', 'gebiet', 'max_plaetze', 'besetzung', 'created_at'],
-        'units': ['id', 'name', 'kuerzel', 'beschreibung', 'leiter', 'mitglieder', 'created_at'],
-        'ausbildungen': ['id', 'titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'ausbilder', 'plaetze', 'teilnehmer', 'bewertungen', 'created_at'],
-        'berichte': ['id', 'titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'beteiligte', 'vorfall', 'massnahmen', 'aktenzeichen', 'autor', 'created_at'],
-        'mediathek': ['id', 'titel', 'kategorie', 'autor', 'inhalt', 'link', 'created_at'],
-        'news': ['id', 'titel', 'inhalt', 'kategorie', 'autor', 'created_at'],
+        'users': ['username', 'password', 'full_name', 'dienstnr', 'rank', 'is_admin', 'created_at'],
+        'officers': ['name', 'dienstnr', 'status', 'einsatzfeld', 'position', 'fahrzeug', 'code', 'updated_at'],
+        'mitarbeiter': ['vorname', 'nachname', 'dienstnr', 'rang', 'abteilung', 'funktion', 'status', 'eintrittsdatum', 'telefon', 'email', 'adresse', 'geburtstag', 'notfallkontakt', 'ausbildungen', 'user_id'],
+        'cases': ['titel', 'aktenzeichen', 'typ', 'status', 'prioritaet', 'fallfuehrer', 'ort', 'beteiligte', 'beschreibung', 'notizen', 'erstellt_von', 'created_at'],
+        'akten': ['aktenzeichen', 'titel', 'kategorie', 'status', 'autor', 'datum', 'inhalt', 'link', 'case_id', 'created_at'],
+        'personalakten': ['mitarbeiter', 'typ', 'datum', 'ersteller', 'betreff', 'inhalt', 'created_at'],
+        'nachrichten': ['von', 'an', 'betreff', 'nachricht', 'gelesen', 'created_at'],
+        'termine': ['titel', 'beschreibung', 'datum', 'uhrzeit', 'typ', 'erstellt_von', 'created_at'],
+        'rechnungen': ['titel', 'betrag', 'status', 'kategorie', 'bemerkung', 'datum', 'created_at'],
+        'streifen': ['nummer', 'fahrzeug', 'gebiet', 'max_plaetze', 'besetzung', 'created_at'],
+        'units': ['name', 'kuerzel', 'beschreibung', 'leiter', 'mitglieder', 'created_at'],
+        'ausbildungen': ['titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'ausbilder', 'plaetze', 'teilnehmer', 'bewertungen', 'created_at'],
+        'berichte': ['titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'beteiligte', 'vorfall', 'massnahmen', 'aktenzeichen', 'autor', 'created_at'],
+        'mediathek': ['titel', 'kategorie', 'autor', 'inhalt', 'link', 'created_at'],
+        'news': ['titel', 'inhalt', 'kategorie', 'autor', 'created_at'],
         'settings': ['key', 'value', 'updated_at']
     };
 
@@ -57,14 +57,12 @@
         if (!fields) return obj;
         var row = {};
         fields.forEach(function(f) {
-            if (f === 'id') return;
             if (obj[f] !== undefined) { row[f] = obj[f]; return; }
             if (f === 'full_name' && obj.fullName) { row[f] = obj.fullName; return; }
             if (f === 'rank' && obj.rang) { row[f] = obj.rang; return; }
             if (f === 'is_admin' && obj.isAdmin !== undefined) { row[f] = obj.isAdmin; return; }
-            if (f === 'created_at' && obj.createdAt) { row[f] = obj.createdAt; return; }
+            if (f === 'created_at') { row[f] = obj.createdAt || new Date().toISOString(); return; }
             if (f === 'updated_at') { row[f] = new Date().toISOString(); return; }
-            if (obj[f] !== undefined) row[f] = obj[f];
         });
         return row;
     }
@@ -78,10 +76,10 @@
         return row;
     }
 
-    function deduplicate(arr, key) {
+    function deduplicate(arr, keyFn) {
         var seen = {};
         return arr.filter(function(item) {
-            var k = key(item);
+            var k = keyFn(item);
             if (seen[k]) return false;
             seen[k] = true;
             return true;
@@ -99,11 +97,9 @@
                 if (!res.error && res.data && res.data.length > 0) {
                     var data = res.data.map(fromDBRow);
                     if (table === 'users') {
-                        data = deduplicate(data, function(u) { return u.username || u.id; });
+                        data = deduplicate(data, function(u) { return u.username || ''; });
                     } else if (table === 'mitarbeiter') {
-                        data = deduplicate(data, function(m) { return (m.vorname || '') + '_' + (m.nachname || '') + '_' + (m.dienstnr || ''); });
-                    } else {
-                        data = deduplicate(data, function(r) { return r.id || JSON.stringify(r).substring(0, 50); });
+                        data = deduplicate(data, function(m) { return (m.vorname || '') + '|' + (m.nachname || '') + '|' + (m.dienstnr || ''); });
                     }
                     localStorage.setItem(key, JSON.stringify(data));
                 } else if (res.error) {
@@ -128,7 +124,7 @@
 
         try {
             var data = JSON.parse(raw);
-            if (!Array.isArray(data)) return Promise.resolve();
+            if (!data) return Promise.resolve();
 
             if (table === 'settings') {
                 if (typeof data === 'object' && !Array.isArray(data)) {
@@ -138,25 +134,60 @@
                     });
                     return Promise.all(proms).then(function() {
                         console.log('[DB] ' + table + ': gespeichert');
+                    }).catch(function(e) {
+                        console.warn('[DB] ' + table + ' Fehler:', e.message);
                     });
                 }
                 return Promise.resolve();
             }
 
-            return _s.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000').then(function() {
-                if (data.length > 0) {
-                    var rows = data.map(function(r) { return toDBRow(r, table); });
-                    return _s.from(table).insert(rows).then(function(res) {
-                        if (res.error) {
-                            console.warn('[DB] Speichern ' + table + ':', res.error.message);
+            // Alle existierenden IDs aus der DB holen
+            return _s.from(table).select('id').then(function(existing) {
+                var existingIds = [];
+                if (existing.data) {
+                    existingIds = existing.data.map(function(r) { return r.id; }).filter(Boolean);
+                }
+
+                if (!Array.isArray(data)) data = [];
+
+                if (data.length === 0 && existingIds.length === 0) {
+                    return Promise.resolve();
+                }
+
+                // 1. Alle aus DB loeschen die nicht mehr in localStorage sind
+                var deleteProms = existingIds.map(function(id) {
+                    return _s.from(table).delete().eq('id', id);
+                });
+
+                return Promise.all(deleteProms).then(function() {
+                    // 2. Alle aus localStorage einfuegen die eine id haben (aus DB)
+                    var toInsert = data.filter(function(r) { return r.id; }).map(function(r) { return toDBRow(r, table); });
+
+                    // 3. Alle aus localStorage die KEINE id haben (neu) - mit upsert
+                    var toUpsert = data.filter(function(r) { return !r.id; }).map(function(r) { return toDBRow(r, table); });
+
+                    var insertProms = [];
+                    if (toInsert.length > 0) {
+                        insertProms.push(_s.from(table).insert(toInsert));
+                    }
+                    if (toUpsert.length > 0) {
+                        insertProms.push(_s.from(table).insert(toUpsert));
+                    }
+
+                    return Promise.all(insertProms).then(function(results) {
+                        var hasError = results.some(function(r) { return r.error; });
+                        if (hasError) {
+                            results.forEach(function(r) {
+                                if (r.error) console.warn('[DB] ' + table + ' insert:', r.error.message);
+                            });
                         } else {
-                            console.log('[DB] ' + table + ': ' + rows.length + ' Zeilen gespeichert');
+                            console.log('[DB] ' + table + ': ' + data.length + ' Zeilen gespeichert');
                         }
                     });
-                }
+                });
             });
         } catch(e) {
-            console.warn('[DB] Speichern ' + table + ':', e.message);
+            console.warn('[DB] ' + table + ' Fehler:', e.message);
             return Promise.resolve();
         }
     }
@@ -169,11 +200,8 @@
     }
 
     function setupDBLogin() {
-        var origHandler = null;
         var form = document.getElementById('formLogin');
-        if (!form) return;
-        if (form._dbHandler) return;
-        origHandler = form.onsubmit;
+        if (!form || form._dbHandler) return;
         form._dbHandler = function(e) {
             var user = document.getElementById('loginUser').value.trim();
             var pass = document.getElementById('loginPass').value;
@@ -194,7 +222,6 @@
                     document.getElementById('loginError').style.display = 'block';
                     return;
                 }
-
                 localStorage.setItem('ucp_currentUser', JSON.stringify(dbUser));
                 loadAllFromDB(function() {
                     location.reload();
@@ -226,7 +253,8 @@
                 loadAllFromDB(function() {
                     console.log('[DB] Alle Daten aus der Datenbank geladen!');
                     setupDBLogin();
-                    // Sofort speichern wenn sich etwas aendert (localStorage Override)
+
+                    // Sofort speichern bei jeder Aenderung
                     var origSetItem = localStorage.setItem.bind(localStorage);
                     localStorage.setItem = function(key, value) {
                         origSetItem(key, value);
@@ -234,7 +262,8 @@
                             saveTableToDB(key);
                         }
                     };
-                    // Backup-Sync alle 60 Sekunden
+
+                    // Backup alle 60 Sekunden
                     setInterval(saveAllToDB, 60000);
                 });
             });
