@@ -24,9 +24,27 @@
         'ucp_settings': 'settings'
     };
 
+    var DB_FIELDS = {
+        'users': ['id', 'username', 'password', 'full_name', 'dienstnr', 'rank', 'is_admin', 'created_at'],
+        'officers': ['id', 'name', 'dienstnr', 'status', 'einsatzfeld', 'position', 'fahrzeug', 'code', 'updated_at'],
+        'mitarbeiter': ['id', 'vorname', 'nachname', 'dienstnr', 'rang', 'abteilung', 'funktion', 'status', 'eintrittsdatum', 'telefon', 'email', 'adresse', 'geburtstag', 'notfallkontakt', 'ausbildungen', 'user_id'],
+        'cases': ['id', 'titel', 'aktenzeichen', 'typ', 'status', 'prioritaet', 'fallfuehrer', 'ort', 'beteiligte', 'beschreibung', 'notizen', 'erstellt_von', 'created_at'],
+        'akten': ['id', 'aktenzeichen', 'titel', 'kategorie', 'status', 'autor', 'datum', 'inhalt', 'link', 'case_id', 'created_at'],
+        'personalakten': ['id', 'mitarbeiter', 'typ', 'datum', 'ersteller', 'betreff', 'inhalt', 'created_at'],
+        'nachrichten': ['id', 'von', 'an', 'betreff', 'nachricht', 'gelesen', 'created_at'],
+        'termine': ['id', 'titel', 'beschreibung', 'datum', 'uhrzeit', 'typ', 'erstellt_von', 'created_at'],
+        'rechnungen': ['id', 'titel', 'betrag', 'status', 'kategorie', 'bemerkung', 'datum', 'created_at'],
+        'streifen': ['id', 'nummer', 'fahrzeug', 'gebiet', 'max_plaetze', 'besetzung', 'created_at'],
+        'units': ['id', 'name', 'kuerzel', 'beschreibung', 'leiter', 'mitglieder', 'created_at'],
+        'ausbildungen': ['id', 'titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'ausbilder', 'plaetze', 'teilnehmer', 'bewertungen', 'created_at'],
+        'berichte': ['id', 'titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'beteiligte', 'vorfall', 'massnahmen', 'aktenzeichen', 'autor', 'created_at'],
+        'mediathek': ['id', 'titel', 'kategorie', 'autor', 'inhalt', 'link', 'created_at'],
+        'news': ['id', 'titel', 'inhalt', 'kategorie', 'autor', 'created_at'],
+        'settings': ['key', 'value', 'updated_at']
+    };
+
     var _s = null;
 
-    // Warte bis Supabase CDN geladen ist
     function waitForLib(cb, n) {
         n = n || 0;
         if (n > 20) { cb(null); return; }
@@ -34,7 +52,32 @@
         else { setTimeout(function() { waitForLib(cb, n + 1); }, 500); }
     }
 
-    // 1. ALLE DATEN AUS DER DATENBANK LADEN
+    function toDBRow(obj, table) {
+        var fields = DB_FIELDS[table];
+        if (!fields) return obj;
+        var row = {};
+        fields.forEach(function(f) {
+            if (f === 'id') return;
+            if (obj[f] !== undefined) { row[f] = obj[f]; return; }
+            if (f === 'full_name' && obj.fullName) { row[f] = obj.fullName; return; }
+            if (f === 'rank' && obj.rang) { row[f] = obj.rang; return; }
+            if (f === 'is_admin' && obj.isAdmin !== undefined) { row[f] = obj.isAdmin; return; }
+            if (f === 'created_at' && obj.createdAt) { row[f] = obj.createdAt; return; }
+            if (f === 'updated_at') { row[f] = new Date().toISOString(); return; }
+            if (obj[f] !== undefined) row[f] = obj[f];
+        });
+        return row;
+    }
+
+    function fromDBRow(row) {
+        if (!row) return row;
+        if (row.full_name !== undefined && !row.fullName) row.fullName = row.full_name;
+        if (row.rank !== undefined && !row.rang) row.rang = row.rank;
+        if (row.is_admin !== undefined && row.isAdmin === undefined) row.isAdmin = row.is_admin;
+        if (row.created_at !== undefined && !row.createdAt) row.createdAt = row.created_at;
+        return row;
+    }
+
     function loadAllFromDB(callback) {
         if (!_s) { callback(); return; }
         var keys = Object.keys(TABLES);
@@ -44,66 +87,84 @@
             var table = TABLES[key];
             _s.from(table).select('*').then(function(res) {
                 if (!res.error && res.data && res.data.length > 0) {
-                    var data = res.data.map(function(row) {
-                        if (row.full_name !== undefined) { row.fullName = row.full_name; }
-                        if (row.rank !== undefined && !row.rang) { row.rang = row.rank; }
-                        return row;
-                    });
-                    localStorage.setItem(key, JSON.stringify(data));
+                    localStorage.setItem(key, JSON.stringify(res.data.map(fromDBRow)));
+                } else if (!res.error && res.data && res.data.length === 0) {
+                    // Tabelle ist leer - nichts tun
+                } else if (res.error) {
+                    console.warn('[DB] Laden ' + table + ':', res.error.message);
                 }
                 done++;
                 if (done === keys.length) callback();
-            }).catch(function() {
+            }).catch(function(e) {
+                console.warn('[DB] Laden ' + table + ':', e.message);
                 done++;
                 if (done === keys.length) callback();
             });
         });
     }
 
-    // 2. ALLE DATEN IN DIE DATENBANK SPEICHERN
+    function saveTableToDB(key) {
+        if (!_s) return Promise.resolve();
+        var table = TABLES[key];
+        if (!table) return Promise.resolve();
+        var raw = localStorage.getItem(key);
+        if (!raw) return Promise.resolve();
+
+        try {
+            var data = JSON.parse(raw);
+            if (!Array.isArray(data)) return Promise.resolve();
+
+            if (table === 'settings') {
+                if (typeof data === 'object' && !Array.isArray(data)) {
+                    var proms = [];
+                    Object.keys(data).forEach(function(k) {
+                        proms.push(_s.from(table).upsert({ key: k, value: String(data[k]), updated_at: new Date().toISOString() }, { onConflict: 'key' }));
+                    });
+                    return Promise.all(proms).then(function() {
+                        console.log('[DB] ' + table + ': gespeichert');
+                    });
+                }
+                return Promise.resolve();
+            }
+
+            return _s.from(table).delete().gt('created_at', '1900-01-01').then(function() {
+                if (data.length > 0) {
+                    var rows = data.map(function(r) { return toDBRow(r, table); });
+                    return _s.from(table).insert(rows).then(function(res) {
+                        if (res.error) {
+                            console.warn('[DB] Speichern ' + table + ':', res.error.message);
+                        } else {
+                            console.log('[DB] ' + table + ': ' + rows.length + ' Zeilen gespeichert');
+                        }
+                    });
+                }
+            });
+        } catch(e) {
+            console.warn('[DB] Speichern ' + table + ':', e.message);
+            return Promise.resolve();
+        }
+    }
+
     function saveAllToDB() {
         if (!_s) return;
         Object.keys(TABLES).forEach(function(key) {
-            var table = TABLES[key];
-            var raw = localStorage.getItem(key);
-            if (!raw) return;
-            try {
-                var data = JSON.parse(raw);
-                if (!Array.isArray(data)) return;
-
-                _s.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000').then(function() {
-                    if (data.length > 0) {
-                        var rows = data.map(function(r) {
-                            var row = Object.assign({}, r);
-                            delete row.id;
-                            if (row.fullName !== undefined) { row.full_name = row.fullName; delete row.fullName; }
-                            if (row.rang !== undefined) { row.rank = row.rang; }
-                            if (!row.created_at) row.created_at = new Date().toISOString();
-                            return row;
-                        });
-                        _s.from(table).insert(rows).then(function(res) {
-                            if (!res.error) console.log('[DB] ' + table + ': ' + rows.length + ' Zeilen gespeichert');
-                        });
-                    }
-                });
-            } catch(e) {}
+            saveTableToDB(key);
         });
     }
 
-    // 3. AUTOMATISCH ALLE 30 SEKUNDEN SPEICHERN
-    function startAutoSave() {
-        setInterval(saveAllToDB, 30000);
-    }
-
-    // 4. LOGIN UEBER DATENBANK
     function setupDBLogin() {
+        var origHandler = null;
         var form = document.getElementById('formLogin');
         if (!form) return;
-        form.removeEventListener('submit', form._dbHandler);
+        if (form._dbHandler) return;
+        origHandler = form.onsubmit;
         form._dbHandler = function(e) {
             var user = document.getElementById('loginUser').value.trim();
             var pass = document.getElementById('loginPass').value;
             if (!_s) return;
+
+            e.preventDefault();
+            e.stopPropagation();
 
             _s.from('users').select('*').eq('username', user).single().then(function(res) {
                 if (res.error || !res.data) {
@@ -111,29 +172,31 @@
                     document.getElementById('loginError').style.display = 'block';
                     return;
                 }
-                var dbUser = res.data;
-                if (dbUser.full_name && !dbUser.fullName) dbUser.fullName = dbUser.full_name;
-                if (dbUser.rank && !dbUser.rang) dbUser.rang = dbUser.rank;
-
+                var dbUser = fromDBRow(res.data);
                 if (dbUser.password !== pass) {
                     document.getElementById('loginError').textContent = 'Benutzername oder Passwort falsch.';
                     document.getElementById('loginError').style.display = 'block';
                     return;
                 }
 
-                // User in localStorage speichern fuer die App
                 localStorage.setItem('ucp_currentUser', JSON.stringify(dbUser));
-
-                // Alle anderen Daten auch aus DB laden
                 loadAllFromDB(function() {
                     location.reload();
                 });
+            }).catch(function(err) {
+                console.warn('[DB] Login Fehler:', err.message);
             });
         };
         form.addEventListener('submit', form._dbHandler);
     }
 
-    // STARTEN
+    function waitForApp(cb, n) {
+        n = n || 0;
+        if (n > 40) { cb(); return; }
+        if (document.getElementById('sidebarNav') && document.getElementById('formLogin')) { cb(); }
+        else { setTimeout(function() { waitForApp(cb, n + 1); }, 250); }
+    }
+
     waitForLib(function(supabase) {
         if (!supabase) {
             console.warn('[DB] Supabase nicht verfuegbar - lokaler Modus');
@@ -143,13 +206,12 @@
             _s = supabase.createClient(URL, KEY);
             console.log('[DB] Supabase Client bereit!');
 
-            // Daten aus DB laden
-            loadAllFromDB(function() {
-                console.log('[DB] Alle Daten aus der Datenbank geladen!');
-                // Login-Handler fuer DB-Login einrichten
-                setupDBLogin();
-                // Auto-Sync starten
-                startAutoSave();
+            waitForApp(function() {
+                loadAllFromDB(function() {
+                    console.log('[DB] Alle Daten aus der Datenbank geladen!');
+                    setupDBLogin();
+                    setInterval(saveAllToDB, 30000);
+                });
             });
         } catch(e) {
             console.warn('[DB] Fehler:', e.message);
