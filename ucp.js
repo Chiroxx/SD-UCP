@@ -392,6 +392,9 @@
         // Neuigkeiten
         loadNews();
 
+        // Gesuchte Personen
+        renderGesuchtePersonen();
+
         // Gespeicherte Settings anwenden
         const settings = JSON.parse(localStorage.getItem('ucp_settings')) || {};
         if (settings.bannerUrl) {
@@ -3521,11 +3524,13 @@
         liste.innerHTML = filtered.map(p => {
             const aktenCount = p.akten?.length || 0;
             const geb = p.geburtstag ? new Date(p.geburtstag).toLocaleDateString('de-DE') : '-';
-            return `<div class="person-card" style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);margin-bottom:0.5rem;cursor:pointer;background:var(--bg-card);" onclick="UCP.openPersonDetail('${p.id}')">
-                <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;">${(p.name||'?')[0].toUpperCase()}</div>
+            const gesuchtBadge = p.gesucht ? `<span style="background:#ef4444;color:#fff;padding:0.15rem 0.5rem;border-radius:var(--radius-sm);font-size:0.7rem;font-weight:bold;margin-left:0.5rem;"><i class="fas fa-exclamation-triangle"></i> GESUCHT</span>` : '';
+            return `<div class="person-card" style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem;border:1px solid ${p.gesucht ? '#ef4444' : 'var(--border-color)'};border-radius:var(--radius-sm);margin-bottom:0.5rem;cursor:pointer;background:${p.gesucht ? 'rgba(239,68,68,0.1)' : 'var(--bg-card)'};" onclick="UCP.openPersonDetail('${p.id}')">
+                <div style="width:40px;height:40px;border-radius:50%;background:${p.gesucht ? '#ef4444' : 'var(--primary)'};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;">${(p.name||'?')[0].toUpperCase()}</div>
                 <div style="flex:1;">
-                    <div style="font-weight:600;color:var(--text-primary);">${esc(p.name)}</div>
+                    <div style="font-weight:600;color:var(--text-primary);">${esc(p.name)}${gesuchtBadge}</div>
                     <div style="font-size:0.8rem;color:var(--text-muted);">${esc(p.telefon || '-')} | ${geb}</div>
+                    ${p.gesuchtGrund ? `<div style="font-size:0.75rem;color:#ef4444;"><i class="fas fa-gavel"></i> ${esc(p.gesuchtGrund)}</div>` : ''}
                 </div>
                 <span style="background:var(--bg-secondary);padding:0.2rem 0.5rem;border-radius:var(--radius-sm);font-size:0.75rem;color:var(--text-muted);">${aktenCount} Akte${aktenCount !== 1 ? 'n' : ''}</span>
             </div>`;
@@ -3539,7 +3544,9 @@
 
         document.getElementById('personDetailName').textContent = person.name;
         const geb = person.geburtstag ? new Date(person.geburtstag).toLocaleDateString('de-DE') : '-';
+        const gesuchtInfo = person.gesucht ? `<div style="padding:0.5rem;background:rgba(239,68,68,0.15);border:1px solid #ef4444;border-radius:var(--radius-sm);margin-top:0.5rem;"><span style="color:#ef4444;font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> GESUCHT</span>${person.gesuchtGrund ? ` - ${esc(person.gesuchtGrund)}` : ''}</div>` : '';
         document.getElementById('personDetailInfo').innerHTML = `
+            ${gesuchtInfo}
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem;">
                 <div style="padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Telefon</span><br><span style="color:var(--text-primary);">${esc(person.telefon || '-')}</span></div>
                 <div style="padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Geburtstag</span><br><span style="color:var(--text-primary);">${geb}</span></div>
@@ -3561,6 +3568,7 @@
         }
         liste.innerHTML = akten.map((a, idx) => {
             const datum = a.datum ? new Date(a.datum).toLocaleDateString('de-DE') : '-';
+            const statusColor = a.status === 'Abgeschlossen' ? '#10b981' : a.status === 'In Bearbeitung' ? '#3b82f6' : a.status === 'Eingestellt' ? '#6b7280' : '#f59e0b';
             return `<div style="padding:0.75rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);margin-bottom:0.5rem;background:var(--bg-secondary);">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                     <div>
@@ -3572,7 +3580,14 @@
                         <button class="btn btn-sm btn-danger" onclick="UCP.deletePersonenAkte(${idx})"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
-                <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;">${datum}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;display:flex;gap:1rem;flex-wrap:wrap;">
+                    <span>${datum}</span>
+                    ${a.straftat ? `<span style="color:#ef4444;"><i class="fas fa-gavel"></i> ${esc(a.straftat)}</span>` : ''}
+                    ${a.fallakte ? `<span style="color:#f59e0b;"><i class="fas fa-folder"></i> ${esc(a.fallakte)}</span>` : ''}
+                    ${a.status ? `<span style="color:${statusColor};">${esc(a.status)}</span>` : ''}
+                    ${a.haftbefehl === 'Ja' ? `<span style="color:#ef4444;font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> Haftbefehl</span>` : ''}
+                    ${a.haftbefehl === 'Ausstehend' ? `<span style="color:#f59e0b;font-weight:bold;"><i class="fas fa-clock"></i> Haftbefehl ausstehend</span>` : ''}
+                </div>
                 ${a.inhalt ? `<div style="margin-top:0.4rem;color:var(--text-secondary);font-size:0.9rem;white-space:pre-wrap;">${esc(a.inhalt)}</div>` : ''}
             </div>`;
         }).join('');
@@ -3585,6 +3600,8 @@
         document.getElementById('personTelefon').value = '';
         document.getElementById('personGeburtstag').value = '';
         document.getElementById('personAdresse').value = '';
+        document.getElementById('personGesucht').checked = false;
+        document.getElementById('personGesuchtGrund').value = '';
         document.getElementById('personNotizen').value = '';
         openModal('modalPerson');
     }
@@ -3598,6 +3615,8 @@
         document.getElementById('personTelefon').value = person.telefon || '';
         document.getElementById('personGeburtstag').value = person.geburtstag || '';
         document.getElementById('personAdresse').value = person.adresse || '';
+        document.getElementById('personGesucht').checked = person.gesucht === true;
+        document.getElementById('personGesuchtGrund').value = person.gesuchtGrund || '';
         document.getElementById('personNotizen').value = person.notizen || '';
         openModal('modalPerson');
     }
@@ -3611,6 +3630,8 @@
             telefon: document.getElementById('personTelefon').value.trim(),
             geburtstag: document.getElementById('personGeburtstag').value,
             adresse: document.getElementById('personAdresse').value.trim(),
+            gesucht: document.getElementById('personGesucht').checked,
+            gesuchtGrund: document.getElementById('personGesuchtGrund').value.trim(),
             notizen: document.getElementById('personNotizen').value.trim()
         };
         if (editId) {
@@ -3623,6 +3644,7 @@
         }
         savePersonen();
         renderPersonen();
+        renderGesuchtePersonen();
         closeModal('modalPerson');
         if (selectedPersonId) openPersonDetail(selectedPersonId);
         showToast(editId ? 'Person aktualisiert!' : 'Person erstellt!');
@@ -3647,6 +3669,10 @@
         document.getElementById('paBetreff').value = '';
         document.getElementById('paTyp').value = 'Notiz';
         document.getElementById('paDatum').value = new Date().toISOString().split('T')[0];
+        document.getElementById('paStraftat').value = '';
+        document.getElementById('paFallakte').value = '';
+        document.getElementById('paStatus').value = 'Offen';
+        document.getElementById('paHaftbefehl').value = 'Nein';
         document.getElementById('paInhalt').value = '';
         openModal('modalPersonenAkte');
     }
@@ -3661,6 +3687,10 @@
         document.getElementById('paBetreff').value = a.betreff || '';
         document.getElementById('paTyp').value = a.typ || 'Notiz';
         document.getElementById('paDatum').value = a.datum || '';
+        document.getElementById('paStraftat').value = a.straftat || '';
+        document.getElementById('paFallakte').value = a.fallakte || '';
+        document.getElementById('paStatus').value = a.status || 'Offen';
+        document.getElementById('paHaftbefehl').value = a.haftbefehl || 'Nein';
         document.getElementById('paInhalt').value = a.inhalt || '';
         openModal('modalPersonenAkte');
     }
@@ -3677,6 +3707,10 @@
             betreff: betreff,
             typ: document.getElementById('paTyp').value,
             datum: document.getElementById('paDatum').value,
+            straftat: document.getElementById('paStraftat').value,
+            fallakte: document.getElementById('paFallakte').value.trim(),
+            status: document.getElementById('paStatus').value,
+            haftbefehl: document.getElementById('paHaftbefehl').value,
             inhalt: document.getElementById('paInhalt').value.trim(),
             datumErstellt: new Date().toISOString()
         };
@@ -3706,6 +3740,37 @@
     UCP.openPersonDetail = openPersonDetail;
     UCP.editPersonenAkte = editPersonenAkte;
     UCP.deletePersonenAkte = deletePersonenAkte;
+
+    // Dashboard: Gesuchte Personen rendern
+    function renderGesuchtePersonen() {
+        const liste = document.getElementById('dashGesuchteListe');
+        if (!liste) return;
+        const gesuchte = personen.filter(p => p.gesucht === true);
+        const counter = document.getElementById('dashGesuchtCount');
+        if (counter) counter.textContent = gesuchte.length;
+
+        if (gesuchte.length === 0) {
+            liste.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-muted);"><i class="fas fa-check-circle" style="font-size:1.5rem;color:#10b981;margin-bottom:0.5rem;display:block;"></i>Keine gesuchten Personen</div>';
+            return;
+        }
+        liste.innerHTML = gesuchte.map(p => {
+            const geb = p.geburtstag ? new Date(p.geburtstag).toLocaleDateString('de-DE') : '-';
+            const akten = (p.akten || []).filter(a => a.straftat);
+            const letzteAkte = akten.length > 0 ? akten[akten.length - 1] : null;
+            return `<div style="display:flex;align-items:center;gap:1rem;padding:0.75rem;border:2px solid #ef4444;border-radius:var(--radius-sm);margin-bottom:0.5rem;background:rgba(239,68,68,0.08);cursor:pointer;" onclick="UCP.switchView('personen'); setTimeout(function(){UCP.openPersonDetail('${p.id}');},200);">
+                <div style="width:48px;height:48px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:1.1rem;flex-shrink:0;">${(p.name||'?')[0].toUpperCase()}</div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;color:#ef4444;">${esc(p.name)} <i class="fas fa-exclamation-triangle" style="font-size:0.8rem;"></i></div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">${esc(p.telefon || '-')} | ${geb} | ${esc(p.adresse || '-')}</div>
+                    ${p.gesuchtGrund ? `<div style="font-size:0.8rem;color:#ef4444;font-weight:600;margin-top:0.2rem;"><i class="fas fa-gavel"></i> ${esc(p.gesuchtGrund)}</div>` : ''}
+                    ${letzteAkte ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;"><i class="fas fa-folder"></i> ${esc(letzteAkte.straftat || '')} ${letzteAkte.fallakte ? '- ' + esc(letzteAkte.fallakte) : ''}</div>` : ''}
+                </div>
+                <span style="color:#ef4444;font-size:0.8rem;font-weight:bold;white-space:nowrap;"><i class="fas fa-search"></i></span>
+            </div>`;
+        }).join('');
+    }
+
+    UCP.renderGesuchtePersonen = renderGesuchtePersonen;
 
     // ============================================================
     // UTILS

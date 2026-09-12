@@ -42,7 +42,7 @@
         'mediathek': ['titel', 'kategorie', 'autor', 'inhalt', 'link', 'created_at'],
         'news': ['titel', 'inhalt', 'kategorie', 'autor', 'created_at'],
         'settings': ['key', 'value', 'updated_at'],
-        'personen': ['name', 'telefon', 'geburtstag', 'adresse', 'notizen', 'akten', 'user_id']
+        'personen': ['name', 'telefon', 'geburtstag', 'adresse', 'notizen', 'gesucht', 'gesucht_grund', 'akten', 'user_id']
     };
 
     var _s = null;
@@ -63,6 +63,7 @@
             if (f === 'full_name' && obj.fullName) { row[f] = obj.fullName; return; }
             if (f === 'rank' && obj.rang) { row[f] = obj.rang; return; }
             if (f === 'is_admin' && obj.isAdmin !== undefined) { row[f] = obj.isAdmin; return; }
+            if (f === 'gesucht_grund' && obj.gesuchtGrund) { row[f] = obj.gesuchtGrund; return; }
             if (f === 'created_at') { row[f] = obj.createdAt || new Date().toISOString(); return; }
             if (f === 'updated_at') { row[f] = new Date().toISOString(); return; }
         });
@@ -74,6 +75,7 @@
         if (row.full_name !== undefined && !row.fullName) row.fullName = row.full_name;
         if (row.rank !== undefined && !row.rang) row.rang = row.rank;
         if (row.is_admin !== undefined && row.isAdmin === undefined) row.isAdmin = row.is_admin;
+        if (row.gesucht_grund !== undefined && !row.gesuchtGrund) row.gesuchtGrund = row.gesucht_grund;
         if (row.created_at !== undefined && !row.createdAt) row.createdAt = row.created_at;
         return row;
     }

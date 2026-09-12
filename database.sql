@@ -230,6 +230,8 @@ CREATE TABLE IF NOT EXISTS personen (
     geburtstag DATE,
     adresse TEXT,
     notizen TEXT,
+    gesucht BOOLEAN DEFAULT FALSE,
+    gesucht_grund TEXT,
     akten JSONB DEFAULT '[]',
     user_id TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

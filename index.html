@@ -174,6 +174,14 @@
                         <div id="dashTermineListe"></div>
                     </div>
 
+                    <div class="dashboard-section" style="border:2px solid #ef4444;border-radius:var(--radius-md);padding:1rem;background:rgba(239,68,68,0.03);">
+                        <div class="section-header">
+                            <h2 style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Gesuchte Personen (<span id="dashGesuchtCount">0</span>)</h2>
+                            <button class="btn btn-sm btn-danger" onclick="UCP.switchView('personen')"><i class="fas fa-arrow-right"></i> Alle Personen</button>
+                        </div>
+                        <div id="dashGesuchteListe"></div>
+                    </div>
+
                     <div class="dashboard-section">
                         <div class="section-header">
                             <h2><i class="fas fa-newspaper"></i> Neuigkeiten & Updates</h2>
@@ -853,6 +861,13 @@
                                 <div class="form-group"><label>Geburtstag</label><input type="date" id="personGeburtstag"></div>
                             </div>
                             <div class="form-group"><label>Adresse</label><input type="text" id="personAdresse" placeholder="Strasse, PLZ Ort"></div>
+                            <div class="form-row">
+                                <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;padding-top:1.5rem;">
+                                    <input type="checkbox" id="personGesucht" style="width:18px;height:18px;cursor:pointer;">
+                                    <label for="personGesucht" style="color:#ef4444;font-weight:bold;cursor:pointer;margin:0;">Gesucht</label>
+                                </div>
+                                <div class="form-group"><label>Gesucht-Grund</label><input type="text" id="personGesuchtGrund" placeholder="z.B. Raub, Diebstahl..."></div>
+                            </div>
                             <div class="form-group"><label>Notizen</label><textarea id="personNotizen" rows="3" placeholder="Zusaetzliche Informationen..."></textarea></div>
                         </div>
                         <div class="modal-footer">
@@ -886,6 +901,50 @@
                                     </select>
                                 </div>
                                 <div class="form-group"><label>Datum</label><input type="date" id="paDatum"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label>Straftat</label>
+                                    <select id="paStraftat">
+                                        <option value="">Keine</option>
+                                        <option value="Diebstahl">Diebstahl</option>
+                                        <option value="Raub">Raub</option>
+                                        <option value="Koerperverletzung">Koerperverletzung</option>
+                                        <option value="Mord">Mord</option>
+                                        <option value="Drogenhandel">Drogenhandel</option>
+                                        <option value="Drogenbesitz">Drogenbesitz</option>
+                                        <option value="Waffenbesitz">Waffenbesitz (illegal)</option>
+                                        <option value="Einbruch">Einbruch</option>
+                                        <option value="Betrug">Betrug</option>
+                                        <option value="Fahrerflucht">Fahrerflucht</option>
+                                        <option value="Trunkenheit am Steuer">Trunkenheit am Steuer</option>
+                                        <option value="Nötigung">Noetigung</option>
+                                        <option value="Bedrohung">Bedrohung</option>
+                                        <option value="Falsche Aussage">Falsche Aussage</option>
+                                        <option value="Korruption">Korruption</option>
+                                        <option value="Erpressung">Erpressung</option>
+                                        <option value="Brandstiftung">Brandstiftung</option>
+                                        <option value="Illegale Rennen">Illegale Rennen</option>
+                                        <option value="Sonstige Straftat">Sonstige Straftat</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Fallakte Nr.</label><input type="text" id="paFallakte" placeholder="z.B. FA-2026-001"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label>Status</label>
+                                    <select id="paStatus">
+                                        <option value="Offen">Offen</option>
+                                        <option value="In Bearbeitung">In Bearbeitung</option>
+                                        <option value="Abgeschlossen">Abgeschlossen</option>
+                                        <option value="Eingestellt">Eingestellt</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Haftbefehl</label>
+                                    <select id="paHaftbefehl">
+                                        <option value="Nein">Nein</option>
+                                        <option value="Ja">Ja</option>
+                                        <option value="Ausstehend">Ausstehend</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="form-group"><label>Inhalt</label><textarea id="paInhalt" rows="5" placeholder="Details zur Akte..."></textarea></div>
                         </div>
