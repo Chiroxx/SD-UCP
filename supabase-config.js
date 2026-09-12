@@ -46,7 +46,8 @@
     };
 
     var _s = null;
-    var _loading = false; // Flag um Speicher-Loops zu verhindern
+    var _loading = false;
+    var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     function waitForLib(cb, n) {
         n = n || 0;
@@ -55,14 +56,14 @@
         else { setTimeout(function() { waitForLib(cb, n + 1); }, 500); }
     }
 
+    // ============================================================
+    // TO/FROM DB ROW
+    // ============================================================
     function toDBRow(obj, table) {
         var fields = DB_FIELDS[table];
         if (!fields) return obj;
         var row = {};
-        var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (obj.id && typeof obj.id === 'string' && uuidRe.test(obj.id)) {
-            row.id = obj.id;
-        }
+        if (obj.id && typeof obj.id === 'string' && UUID_RE.test(obj.id)) { row.id = obj.id; }
         fields.forEach(function(f) {
             if (obj[f] !== undefined) {
                 if (obj[f] === '' && (f.includes('datum') || f.includes('date') || f === 'geburtstag')) { row[f] = null; return; }
@@ -92,18 +93,8 @@
         return row;
     }
 
-    function deduplicate(arr, keyFn) {
-        var seen = {};
-        return arr.filter(function(item) {
-            var k = keyFn(item);
-            if (seen[k]) return false;
-            seen[k] = true;
-            return true;
-        });
-    }
-
     // ============================================================
-    // LADEN AUS DB
+    // LADEN AUS DB - Ueberschreibt localStorage komplett
     // ============================================================
     function loadAllFromDB(callback) {
         if (!_s) { callback(); return; }
@@ -114,48 +105,35 @@
         keys.forEach(function(key) {
             var table = TABLES[key];
 
-            // Settings: Sonderbehandlung (Key-Value -> Object)
             if (table === 'settings') {
                 _s.from(table).select('*').then(function(res) {
                     if (!res.error && res.data) {
-                        var settingsObj = {};
-                        res.data.forEach(function(row) { settingsObj[row.key] = row.value; });
-                        localStorage.setItem(key, JSON.stringify(settingsObj));
+                        var obj = {};
+                        res.data.forEach(function(r) { obj[r.key] = r.value; });
+                        localStorage.setItem(key, JSON.stringify(obj));
                     }
-                    done++;
-                    if (done === keys.length) { _loading = false; callback(); }
-                }).catch(function() {
-                    done++;
-                    if (done === keys.length) { _loading = false; callback(); }
-                });
+                    checkDone();
+                }).catch(function() { checkDone(); });
                 return;
             }
 
-            // Alle anderen Tabellen
             _s.from(table).select('*').then(function(res) {
-                if (res.error) {
-                    console.warn('[DB] Laden ' + table + ':', res.error.message);
-                } else {
+                if (!res.error) {
                     var data = (res.data || []).map(fromDBRow);
-                    if (table === 'users') {
-                        data = deduplicate(data, function(u) { return u.username || ''; });
-                    } else if (table === 'mitarbeiter') {
-                        data = deduplicate(data, function(m) { return (m.vorname || '') + '|' + (m.nachname || '') + '|' + (m.dienstnr || ''); });
-                    }
                     localStorage.setItem(key, JSON.stringify(data));
                 }
-                done++;
-                if (done === keys.length) { _loading = false; callback(); }
-            }).catch(function(e) {
-                console.warn('[DB] Laden ' + table + ':', e.message);
-                done++;
-                if (done === keys.length) { _loading = false; callback(); }
-            });
+                checkDone();
+            }).catch(function() { checkDone(); });
         });
+
+        function checkDone() {
+            done++;
+            if (done === keys.length) { _loading = false; callback(); }
+        }
     }
 
     // ============================================================
-    // SPEICHERN IN DB
+    // SPEICHERN IN DB - Intelligent: Nur Aenderungen
     // ============================================================
     function saveTableToDB(key) {
         if (!_s || _loading) return Promise.resolve();
@@ -171,9 +149,8 @@
             // Settings: Key-Value Upsert
             if (table === 'settings') {
                 if (typeof data === 'object' && !Array.isArray(data)) {
-                    var proms = [];
-                    Object.keys(data).forEach(function(k) {
-                        proms.push(_s.from(table).upsert({ key: k, value: String(data[k]), updated_at: new Date().toISOString() }, { onConflict: 'key' }));
+                    var proms = Object.keys(data).map(function(k) {
+                        return _s.from(table).upsert({ key: k, value: String(data[k]), updated_at: new Date().toISOString() }, { onConflict: 'key' });
                     });
                     return Promise.all(proms).then(function() {
                         console.log('[DB] ' + table + ': gespeichert');
@@ -186,58 +163,35 @@
 
             if (!Array.isArray(data)) return Promise.resolve();
 
-            // Alle existierenden IDs aus der DB holen
-            return _s.from(table).select('id').then(function(existing) {
-                var existingIds = [];
-                if (existing.data) {
-                    existingIds = existing.data.map(function(r) { return r.id; }).filter(Boolean);
+            // Alle existierenden Rows aus DB holen
+            return _s.from(table).select('id').then(function(res) {
+                if (res.error) {
+                    console.warn('[DB] ' + table + ' select:', res.error.message);
+                    return Promise.resolve();
                 }
 
-                if (data.length === 0 && existingIds.length === 0) return Promise.resolve();
+                var dbIds = (res.data || []).map(function(r) { return r.id; }).filter(Boolean);
+                var uuidRe = UUID_RE;
 
-                // 1. Alle aus DB loeschen
-                var deleteProms = existingIds.map(function(id) {
-                    return _s.from(table).delete().eq('id', id);
-                });
+                // IDs aus localStorage die gueltige UUIDs haben
+                var localIdsWithUuid = data.filter(function(r) { return r.id && uuidRe.test(r.id); }).map(function(r) { return r.id; });
+
+                // 1. Loeschen: DB-Ids die NICHT in localStorage sind
+                var toDelete = dbIds.filter(function(id) { return localIdsWithUuid.indexOf(id) === -1; });
+                var deleteProms = toDelete.map(function(id) { return _s.from(table).delete().eq('id', id); });
+
+                // 2. Einfuegen: Items OHNE gueltige UUID (neu erstellt)
+                var toInsert = data.filter(function(r) { return !r.id || !uuidRe.test(r.id); }).map(function(r) { return toDBRow(r, table); });
 
                 return Promise.all(deleteProms).then(function() {
-                    if (data.length === 0) {
-                        console.log('[DB] ' + table + ': 0 Zeilen (alle geloescht)');
-                        return Promise.resolve();
+                    if (toInsert.length === 0) return Promise.resolve();
+                    return _s.from(table).insert(toInsert);
+                }).then(function(res) {
+                    if (res && res.error) {
+                        console.warn('[DB] ' + table + ' insert:', res.error.message);
+                    } else if (toInsert.length > 0) {
+                        console.log('[DB] ' + table + ': ' + toInsert.length + ' neue Zeilen');
                     }
-
-                    // 2. Alle rows erzeugen
-                    var allRows = data.map(function(r) { return toDBRow(r, table); });
-
-                    // Ungueltige id Felder entfernen
-                    var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                    allRows.forEach(function(r) {
-                        if (r.id && !uuidRe.test(r.id)) delete r.id;
-                        Object.keys(r).forEach(function(k) {
-                            if (r[k] === '' && (k.includes('datum') || k.includes('date') || k === 'geburtstag')) {
-                                r[k] = null;
-                            }
-                        });
-                    });
-
-                    // 3. Einfuegen
-                    var toInsert = allRows.filter(function(r) { return r.id; });
-                    var toInsertNoId = allRows.filter(function(r) { return !r.id; });
-
-                    var insertProms = [];
-                    if (toInsert.length > 0) insertProms.push(_s.from(table).insert(toInsert));
-                    if (toInsertNoId.length > 0) insertProms.push(_s.from(table).insert(toInsertNoId));
-
-                    return Promise.all(insertProms).then(function(results) {
-                        var hasError = results.some(function(r) { return r.error; });
-                        if (hasError) {
-                            results.forEach(function(r) {
-                                if (r.error) console.warn('[DB] ' + table + ' insert:', r.error.message);
-                            });
-                        } else {
-                            console.log('[DB] ' + table + ': ' + data.length + ' Zeilen gespeichert');
-                        }
-                    });
                 });
             });
         } catch(e) {
@@ -248,9 +202,7 @@
 
     function saveAllToDB() {
         if (!_s || _loading) return;
-        Object.keys(TABLES).forEach(function(key) {
-            saveTableToDB(key);
-        });
+        Object.keys(TABLES).forEach(function(key) { saveTableToDB(key); });
     }
 
     // ============================================================
@@ -263,7 +215,6 @@
             var user = document.getElementById('loginUser').value.trim();
             var pass = document.getElementById('loginPass').value;
             if (!_s) return;
-
             e.preventDefault();
             e.stopPropagation();
 
@@ -280,9 +231,7 @@
                     return;
                 }
                 localStorage.setItem('ucp_currentUser', JSON.stringify(dbUser));
-                loadAllFromDB(function() {
-                    location.reload();
-                });
+                loadAllFromDB(function() { location.reload(); });
             }).catch(function(err) {
                 console.warn('[DB] Login Fehler:', err.message);
             });
@@ -301,10 +250,7 @@
     // START
     // ============================================================
     waitForLib(function(supabase) {
-        if (!supabase) {
-            console.warn('[DB] Supabase nicht verfuegbar - lokaler Modus');
-            return;
-        }
+        if (!supabase) { console.warn('[DB] Supabase nicht verfuegbar'); return; }
         try {
             _s = supabase.createClient(URL, KEY);
             console.log('[DB] Supabase Client bereit!');
@@ -314,29 +260,20 @@
                     console.log('[DB] Alle Daten aus der Datenbank geladen!');
                     setupDBLogin();
 
-                    // Sofort speichern bei jeder Aenderung
                     var origSetItem = localStorage.setItem.bind(localStorage);
                     localStorage.setItem = function(key, value) {
                         origSetItem(key, value);
-                        if (!_loading && TABLES[key]) {
-                            saveTableToDB(key);
-                        }
+                        if (!_loading && TABLES[key]) { saveTableToDB(key); }
                     };
 
-                    // Alle 10 Sekunden: Daten AUS DB laden
                     setInterval(function() {
-                        loadAllFromDB(function() {
-                            console.log('[DB] Aktualisiert!');
-                        });
+                        loadAllFromDB(function() { console.log('[DB] Aktualisiert!'); });
                     }, 10000);
 
-                    // Backup alle 60 Sekunden
                     setInterval(saveAllToDB, 60000);
                 });
             });
-        } catch(e) {
-            console.warn('[DB] Fehler:', e.message);
-        }
+        } catch(e) { console.warn('[DB] Fehler:', e.message); }
     });
 
 })();
