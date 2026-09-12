@@ -3441,15 +3441,16 @@
 
     function setupLogout() {
         document.getElementById('btnLogout')?.addEventListener('click', () => {
-            if (isClockedIn) { showToast('Zuerst ausstempeln!', 'error'); return; }
+            if (isClockedIn) {
+                isClockedIn = false;
+                clockInTime = null;
+                if (shiftTimer) { clearInterval(shiftTimer); shiftTimer = null; }
+                shiftStart = null;
+                localStorage.removeItem('ucp_clockedIn');
+                localStorage.removeItem('ucp_clockInTime');
+            }
             currentUser = null;
             localStorage.removeItem('ucp_currentUser');
-            localStorage.removeItem('ucp_clockedIn');
-            localStorage.removeItem('ucp_clockInTime');
-            isClockedIn = false;
-            clockInTime = null;
-            if (shiftTimer) { clearInterval(shiftTimer); shiftTimer = null; }
-            shiftStart = null;
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('appContent').style.display = 'none';
             document.getElementById('formLogin').reset();
