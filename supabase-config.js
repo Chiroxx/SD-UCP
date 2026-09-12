@@ -47,6 +47,7 @@
 
     var _s = null;
     var _loading = false;
+    var _loadPending = false;
     var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     function waitForLib(cb, n) {
@@ -98,6 +99,7 @@
     // ============================================================
     function loadAllFromDB(callback) {
         if (!_s) { callback(); return; }
+        if (_loading) { _loadPending = true; return; }
         _loading = true;
         var keys = Object.keys(TABLES);
         var done = 0;
@@ -128,7 +130,11 @@
 
         function checkDone() {
             done++;
-            if (done === keys.length) { _loading = false; callback(); }
+            if (done === keys.length) {
+                _loading = false;
+                callback();
+                if (_loadPending) { _loadPending = false; loadAllFromDB(function() { syncRanks(); }); }
+            }
         }
     }
 
@@ -210,11 +216,34 @@
                     toUpdate.forEach(function(row) {
                         proms.push(_s.from(table).update(row).eq('id', row.id));
                     });
-                    // Inserts ausfuehren
+                    // Inserts ausfuehren und UUIDs zurueckschreiben
                     if (toInsert.length > 0) {
-                        proms.push(_s.from(table).insert(toInsert));
+                        proms.push(_s.from(table).insert(toInsert).select('id'));
                     }
                     return Promise.all(proms);
+                }).then(function(results) {
+                    // UUIDs von Inserts zurueckschreiben
+                    if (toInsert.length > 0) {
+                        try {
+                            var insertResult = results[results.length - 1];
+                            if (insertResult && insertResult.data) {
+                                var raw = localStorage.getItem(key);
+                                var localData = JSON.parse(raw);
+                                if (Array.isArray(localData)) {
+                                    var insertIdx = 0;
+                                    for (var i = 0; i < localData.length; i++) {
+                                        if (!localData[i].id || !uuidRe.test(localData[i].id)) {
+                                            if (insertResult.data[insertIdx]) {
+                                                localData[i].id = insertResult.data[insertIdx].id;
+                                            }
+                                            insertIdx++;
+                                        }
+                                    }
+                                    localStorage.setItem(key, JSON.stringify(localData));
+                                }
+                            }
+                        } catch(e) { console.warn('[DB] UUID-Rueckschreibung:', e.message); }
+                    }
                 }).then(function(results) {
                     var log = [];
                     if (toDelete.length > 0) log.push(toDelete.length + ' geloescht');
@@ -265,6 +294,8 @@
                 loadAllFromDB(function() { location.reload(); });
             }).catch(function(err) {
                 console.warn('[DB] Login Fehler:', err.message);
+                document.getElementById('loginError').textContent = 'Verbindungsfehler. Bitte erneut versuchen.';
+                document.getElementById('loginError').style.display = 'block';
             });
         };
         form.addEventListener('submit', form._dbHandler);
@@ -344,7 +375,6 @@
             waitForApp(function() {
                 loadAllFromDB(function() {
                     console.log('[DB] Alle Daten aus der Datenbank geladen!');
-                    syncRanks();
                     setupDBLogin();
 
                     var origSetItem = localStorage.setItem.bind(localStorage);
@@ -352,6 +382,9 @@
                         origSetItem(key, value);
                         if (!_loading && TABLES[key]) { saveTableToDB(key); }
                     };
+
+                    // syncRanks AFTER interceptor is set up
+                    syncRanks();
 
                     setInterval(function() {
                         loadAllFromDB(function() {

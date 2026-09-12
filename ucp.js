@@ -6,19 +6,22 @@
     'use strict';
 
     // --- STATE ---
-    let currentUser = JSON.parse(localStorage.getItem('ucp_currentUser')) || null;
-    let users = JSON.parse(localStorage.getItem('ucp_users')) || [];
-    let officers = JSON.parse(localStorage.getItem('ucp_officers')) || [];
-    let rechnungen = JSON.parse(localStorage.getItem('ucp_rechnungen')) || [];
-    let streifen = JSON.parse(localStorage.getItem('ucp_streifen')) || [];
-    let mitarbeiter = JSON.parse(localStorage.getItem('ucp_mitarbeiter')) || [];
-    let units = JSON.parse(localStorage.getItem('ucp_units')) || [];
-    let nachrichten = JSON.parse(localStorage.getItem('ucp_nachrichten')) || [];
+    function safeParse(key, fallback) {
+        try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch(e) { return fallback; }
+    }
+    let currentUser = safeParse('ucp_currentUser', null);
+    let users = safeParse('ucp_users', []);
+    let officers = safeParse('ucp_officers', []);
+    let rechnungen = safeParse('ucp_rechnungen', []);
+    let streifen = safeParse('ucp_streifen', []);
+    let mitarbeiter = safeParse('ucp_mitarbeiter', []);
+    let units = safeParse('ucp_units', []);
+    let nachrichten = safeParse('ucp_nachrichten', []);
     let msgTab = 'empfangen';
     let aktuelleMsgIdx = null;
-    let termine = JSON.parse(localStorage.getItem('ucp_termine')) || [];
-    let news = JSON.parse(localStorage.getItem('ucp_news')) || [];
-    let ausbildungen = JSON.parse(localStorage.getItem('ucp_ausbildungen')) || [];
+    let termine = safeParse('ucp_termine', []);
+    let news = safeParse('ucp_news', []);
+    let ausbildungen = safeParse('ucp_ausbildungen', []);
     let shiftStart = null;
     let shiftTimer = null;
     let isClockedIn = localStorage.getItem('ucp_clockedIn') === 'true';
@@ -94,6 +97,7 @@
                 dienstnr: document.getElementById('regDienstnr').value.trim(),
                 rang: defaultRang
             };
+            if (!data.username) { showLoginError('Benutzername ist erforderlich.'); return; }
             if (users.find(u => u.username === data.username)) { showLoginError('Benutzername bereits vergeben.'); return; }
             users.push({ ...data, createdAt: new Date().toISOString() });
             localStorage.setItem('ucp_users', JSON.stringify(users));
@@ -342,43 +346,18 @@
 
     // Reload all in-memory arrays from localStorage (called after DB sync)
     function reloadFromStorage() {
-        const newUsers = JSON.parse(localStorage.getItem('ucp_users'));
-        const newMitarbeiter = JSON.parse(localStorage.getItem('ucp_mitarbeiter'));
-        const newOfficers = JSON.parse(localStorage.getItem('ucp_officers'));
-        const newUnits = JSON.parse(localStorage.getItem('ucp_units'));
-        const newRechnungen = JSON.parse(localStorage.getItem('ucp_rechnungen'));
-        const newStreifen = JSON.parse(localStorage.getItem('ucp_streifen'));
-        const newNachrichten = JSON.parse(localStorage.getItem('ucp_nachrichten'));
-        const newTermine = JSON.parse(localStorage.getItem('ucp_termine'));
-        const newNews = JSON.parse(localStorage.getItem('ucp_news'));
-        const newAusbildungen = JSON.parse(localStorage.getItem('ucp_ausbildungen'));
-        const newCases = JSON.parse(localStorage.getItem('ucp_cases'));
-        const newAkten = JSON.parse(localStorage.getItem('ucp_akten'));
-        const newPersonalakten = JSON.parse(localStorage.getItem('ucp_personalakten'));
-        const newBerichte = JSON.parse(localStorage.getItem('ucp_berichte'));
-        const newPersonen = JSON.parse(localStorage.getItem('ucp_personen'));
-        const newMediathek = JSON.parse(localStorage.getItem('ucp_mediathek'));
-
-        if (newUsers) users = newUsers;
-        if (newMitarbeiter) mitarbeiter = newMitarbeiter;
-        if (newOfficers) officers = newOfficers;
-        if (newUnits) units = newUnits;
-        if (newRechnungen) rechnungen = newRechnungen;
-        if (newStreifen) streifen = newStreifen;
-        if (newNachrichten) nachrichten = newNachrichten;
-        if (newTermine) termine = newTermine;
-        if (newNews) news = newNews;
-        if (newAusbildungen) ausbildungen = newAusbildungen;
-        if (newCases) cases = newCases;
-        if (newAkten) akten = newAkten;
-        if (newPersonalakten) personalakten = newPersonalakten;
-        if (newBerichte) berichte = newBerichte;
-        if (newPersonen) personen = newPersonen;
-        if (newMediathek) mediathek = newMediathek;
-
-        // Also update currentUser from synced users
-        const cur = JSON.parse(localStorage.getItem('ucp_currentUser'));
-        if (cur) currentUser = cur;
+        const keys = [
+            ['ucp_users', 'users'], ['ucp_mitarbeiter', 'mitarbeiter'], ['ucp_officers', 'officers'],
+            ['ucp_units', 'units'], ['ucp_rechnungen', 'rechnungen'], ['ucp_streifen', 'streifen'],
+            ['ucp_nachrichten', 'nachrichten'], ['ucp_termine', 'termine'], ['ucp_news', 'news'],
+            ['ucp_ausbildungen', 'ausbildungen'], ['ucp_cases', 'cases'], ['ucp_akten', 'akten'],
+            ['ucp_personalakten', 'personalakten'], ['ucp_berichte', 'berichte'],
+            ['ucp_personen', 'personen'], ['ucp_mediathek', 'mediathek']
+        ];
+        keys.forEach(([key, varName]) => {
+            try { const val = JSON.parse(localStorage.getItem(key)); if (val !== null) eval(varName + ' = val'); } catch(e) {}
+        });
+        try { const cur = JSON.parse(localStorage.getItem('ucp_currentUser')); if (cur) currentUser = cur; } catch(e) {}
     }
     window.UCP.reloadFromStorage = reloadFromStorage;
 
@@ -573,6 +552,7 @@
 
     window.UCP.editNews = function(idx) {
         const n = news[idx];
+        if (!n) return;
         document.getElementById('newsTitel').value = n.titel;
         document.getElementById('newsKategorie').value = n.kategorie;
         document.getElementById('newsBeschreibung').value = n.beschreibung;
@@ -685,6 +665,7 @@
 
     window.UCP.editAusbildung = function(idx) {
         const a = ausbildungen[idx];
+        if (!a) return;
         document.getElementById('ausbTitel').value = a.titel;
         document.getElementById('ausbDatum').value = a.datum;
         document.getElementById('ausbZeit').value = a.zeit || '10:00';
@@ -1346,8 +1327,9 @@
     }
 
     window.UCP.leseNachricht = function(idx) {
-        aktuelleMsgIdx = idx;
         const m = nachrichten[idx];
+        if (!m) return;
+        aktuelleMsgIdx = idx;
         m.gelesen = true;
         localStorage.setItem('ucp_nachrichten', JSON.stringify(nachrichten));
 
@@ -1517,6 +1499,7 @@
 
     window.UCP.editBericht = function(idx) {
         const b = berichte[idx];
+        if (!b) return;
         document.getElementById('berDatum').value = b.datum;
         document.getElementById('berZeit').value = b.uhrzeit;
         document.getElementById('berTyp').value = b.typ;
@@ -1617,7 +1600,11 @@
 
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-        const upcoming = termine.filter(t => t.datum >= todayStr).sort((a, b) => (a.datum + (a.uhrzeit || '99:99')) < (b.datum + (b.uhrzeit || '99:99')) ? -1 : 1).slice(0, 5);
+        const upcoming = termine.filter(t => t.datum >= todayStr).sort((a, b) => {
+            const da = a.datum + (a.uhrzeit || '99:99');
+            const db = b.datum + (b.uhrzeit || '99:99');
+            return da < db ? -1 : da > db ? 1 : 0;
+        }).slice(0, 5);
 
         if (upcoming.length === 0) {
             container.innerHTML = '<div class="dash-termin-empty">Keine anstehenden Termine.</div>';
@@ -1918,15 +1905,17 @@
         if (getRankLevel(currentUser.rang) > 0) { showToast('Nur Sheriff Techniker kann Admin-Rechte vergeben!', 'error'); return; }
         const m = mitarbeiter[i];
         m.isAdmin = !m.isAdmin;
+        localStorage.setItem('ucp_mitarbeiter', JSON.stringify(mitarbeiter));
         // Sync isAdmin to users table
-        const syncUser = users.find(u => u.username === m.user_id || (u.fullName || u.username) === (m.vorname + ' ' + m.nachname));
+        const syncUser = users.find(u => u.username === m.user_id || (u.fullName || u.username) === ((m.vorname || '') + ' ' + (m.nachname || '')).trim());
         if (syncUser) {
             syncUser.isAdmin = m.isAdmin;
             localStorage.setItem('ucp_users', JSON.stringify(users));
+        } else {
+            localStorage.setItem('ucp_users', JSON.stringify(users));
         }
-        localStorage.setItem('ucp_mitarbeiter', JSON.stringify(mitarbeiter));
-        const用户名 = m.vorname + ' ' + m.nachname;
-        showToast(m.isAdmin ? `${用户名} ist jetzt Admin!` : `${用户名} ist kein Admin mehr.`);
+        const displayName = ((m.vorname || '') + ' ' + (m.nachname || '')).trim();
+        showToast(m.isAdmin ? `${displayName} ist jetzt Admin!` : `${displayName} ist kein Admin mehr.`);
         UCP.showMitarbeiterDetail(i);
     };
 
@@ -2426,18 +2415,22 @@
         if (!status) return;
         if (isClockedIn) {
             status.innerHTML = '<span class="status-badge status-aktiv">Im Dienst</span>';
-            btnIn.disabled = true; btnOut.disabled = false;
+            if (btnIn) btnIn.disabled = true;
+            if (btnOut) btnOut.disabled = false;
         } else {
             status.innerHTML = '<span class="status-badge status-inaktiv">Ausgestempelt</span>';
-            btnIn.disabled = false; btnOut.disabled = true;
-            document.getElementById('shiftTime').textContent = '00:00:00';
+            if (btnIn) btnIn.disabled = false;
+            if (btnOut) btnOut.disabled = true;
+            const shiftTime = document.getElementById('shiftTime');
+            if (shiftTime) shiftTime.textContent = '00:00:00';
         }
     }
 
     function startShiftTimer() {
         stopShiftTimer();
         shiftTimer = setInterval(() => {
-            document.getElementById('shiftTime').textContent = formatDuration(Date.now() - shiftStart);
+            const el = document.getElementById('shiftTime');
+            if (el) el.textContent = formatDuration(Date.now() - shiftStart);
         }, 1000);
     }
 
@@ -2544,7 +2537,11 @@
             return;
         }
 
-        filtered.sort((a, b) => (a.datum + (a.uhrzeit || '99:99')) < (b.datum + (b.uhrzeit || '99:99')) ? -1 : 1);
+        filtered.sort((a, b) => {
+            const da = a.datum.split('.').reverse().join('-') + (a.uhrzeit || '99:99');
+            const db = b.datum.split('.').reverse().join('-') + (b.uhrzeit || '99:99');
+            return da < db ? -1 : da > db ? 1 : 0;
+        });
 
         container.innerHTML = filtered.map((t, i) => {
             const origIdx = termine.indexOf(t);
@@ -2599,6 +2596,7 @@
 
     window.UCP.editTermin = function(idx) {
         const t = termine[idx];
+        if (!t) return;
         document.getElementById('terminTitel').value = t.titel;
         document.getElementById('terminDatum').value = t.datum;
         document.getElementById('terminUhrzeit').value = t.uhrzeit || '';
@@ -2924,7 +2922,10 @@
         document.getElementById('closeModalUnit')?.addEventListener('click', () => closeModal('modalUnit'));
         document.getElementById('closeModalUnitDetail')?.addEventListener('click', () => closeModal('modalUnitDetail'));
 
-        document.getElementById('btnNeueStreife')?.addEventListener('click', () => { document.getElementById('formStreife').reset(); openModal('modalStreife'); });
+        document.getElementById('btnNeueStreife')?.addEventListener('click', () => {
+            if (!isLeadership()) { showToast('Keine Berechtigung!', 'error'); return; }
+            document.getElementById('formStreife').reset(); openModal('modalStreife');
+        });
         document.getElementById('formStreife')?.addEventListener('submit', (e) => {
             e.preventDefault();
             streifen.push({ name: document.getElementById('streifeName').value.trim(), fahrzeug: document.getElementById('streifeFahrzeug').value, maxPlaetze: parseInt(document.getElementById('streifeMax').value) || 4, gebiet: document.getElementById('streifeGebiet').value.trim(), beschreibung: document.getElementById('streifeBeschreibung').value.trim(), beamte: [], createdAt: new Date().toISOString(), createdBy: currentUser.fullName || currentUser.username });
@@ -2936,7 +2937,10 @@
         document.getElementById('cancelStreife')?.addEventListener('click', () => closeModal('modalStreife'));
         document.getElementById('closeModalStreife')?.addEventListener('click', () => closeModal('modalStreife'));
 
-        document.getElementById('btnNeueRechnung')?.addEventListener('click', () => { document.getElementById('formRechnung').reset(); openModal('modalRechnung'); });
+        document.getElementById('btnNeueRechnung')?.addEventListener('click', () => {
+            if (!isLeadership()) { showToast('Keine Berechtigung!', 'error'); return; }
+            document.getElementById('formRechnung').reset(); openModal('modalRechnung');
+        });
         document.getElementById('formRechnung')?.addEventListener('submit', (e) => {
             e.preventDefault();
             addRechnung({ betreff: document.getElementById('rechnungBetreff').value, betrag: document.getElementById('rechnungBetrag').value, beschreibung: document.getElementById('rechnungBeschreibung').value });
@@ -3559,6 +3563,7 @@
                 users[uIdx].password = neu;
                 localStorage.setItem('ucp_users', JSON.stringify(users));
             }
+            localStorage.setItem('ucp_currentUser', JSON.stringify(currentUser));
             document.getElementById('formPasswort').reset();
             showToast('Passwort geaendert!');
         });
@@ -3641,6 +3646,11 @@
         document.getElementById('closeModalTermin')?.addEventListener('click', () => closeModal('modalTermin'));
         document.getElementById('closeModalTerminDetail')?.addEventListener('click', () => closeModal('modalTerminDetail'));
 
+        document.getElementById('closeModalPerson')?.addEventListener('click', () => closeModal('modalPerson'));
+        document.getElementById('cancelPerson')?.addEventListener('click', () => closeModal('modalPerson'));
+        document.getElementById('closeModalPersonenAkte')?.addEventListener('click', () => closeModal('modalPersonenAkte'));
+        document.getElementById('cancelPersonenAkte')?.addEventListener('click', () => closeModal('modalPersonenAkte'));
+
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
         });
@@ -3657,11 +3667,14 @@
 
     function openModal(id) { document.getElementById(id)?.classList.add('active'); }
     function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
+    window.closeModal = closeModal;
 
     // ============================================================
     // CLOCK & LOGOUT
     // ============================================================
+    let clockInterval = null;
     function setupClock() {
+        if (clockInterval) clearInterval(clockInterval);
         function update() {
             const now = new Date();
             const clock = document.getElementById('bannerClock');
@@ -3679,12 +3692,13 @@
             }
         }
         update();
-        setInterval(update, 1000);
+        clockInterval = setInterval(update, 1000);
     }
 
     function setupLogout() {
         document.getElementById('btnLogout')?.addEventListener('click', () => {
             if (isClockedIn) {
+                if (clockInTime && shiftStart) addHistorieEntry(clockInTime, new Date().toISOString(), Date.now() - shiftStart);
                 isClockedIn = false;
                 clockInTime = null;
                 if (shiftTimer) { clearInterval(shiftTimer); shiftTimer = null; }
@@ -3699,7 +3713,9 @@
             document.getElementById('formLogin').reset();
             hideLoginError();
             const rt = document.querySelector('.login-tab[data-tab="register"]');
-            if (rt && users.length > 0) rt.style.display = 'none';
+            const regSettings = safeParse('ucp_settings', {});
+            if (rt && users.length > 0 && regSettings.registrierung !== true) rt.style.display = 'none';
+            if (rt && regSettings.registrierung === true) rt.style.display = '';
             document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.login-tab[data-tab="login"]')?.classList.add('active');
             document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
@@ -3772,7 +3788,8 @@
             ${person.notizen ? `<div style="margin-top:0.5rem;padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Notizen</span><br><span style="color:var(--text-primary);">${esc(person.notizen)}</span></div>` : ''}
         `;
         renderPersonenAkten(person);
-        document.getElementById('btnDeletePerson').style.display = isLeadership() ? '' : 'none';
+        const btnDel = document.getElementById('btnDeletePerson');
+        if (btnDel) btnDel.style.display = isLeadership() ? '' : 'none';
         document.getElementById('personenDetailOverlay').style.display = 'block';
     }
 
@@ -3881,17 +3898,17 @@
 
     function openNewPersonenAkteModal() {
         if (!selectedPersonId) return;
-        document.getElementById('modalPATitle').textContent = 'Neue Akte';
+        document.getElementById('paModalPATitle').textContent = 'Neue Akte';
         document.getElementById('paPersonId').value = selectedPersonId;
         document.getElementById('paEditIdx').value = '';
-        document.getElementById('paBetreff').value = '';
-        document.getElementById('paTyp').value = 'Notiz';
-        document.getElementById('paDatum').value = new Date().toISOString().split('T')[0];
+        document.getElementById('paPABetreff').value = '';
+        document.getElementById('paPATyp').value = 'Notiz';
+        document.getElementById('paPADatum').value = new Date().toISOString().split('T')[0];
         document.getElementById('paStraftat').value = '';
         document.getElementById('paFallakte').value = '';
         document.getElementById('paStatus').value = 'Offen';
         document.getElementById('paHaftbefehl').value = 'Nein';
-        document.getElementById('paInhalt').value = '';
+        document.getElementById('paPAInhalt').value = '';
         openModal('modalPersonenAkte');
     }
 
@@ -3899,37 +3916,37 @@
         const person = personen.find(p => p.id === selectedPersonId);
         if (!person || !person.akten[idx]) return;
         const a = person.akten[idx];
-        document.getElementById('modalPATitle').textContent = 'Akte bearbeiten';
+        document.getElementById('paModalPATitle').textContent = 'Akte bearbeiten';
         document.getElementById('paPersonId').value = selectedPersonId;
         document.getElementById('paEditIdx').value = idx;
-        document.getElementById('paBetreff').value = a.betreff || '';
-        document.getElementById('paTyp').value = a.typ || 'Notiz';
-        document.getElementById('paDatum').value = a.datum || '';
+        document.getElementById('paPABetreff').value = a.betreff || '';
+        document.getElementById('paPATyp').value = a.typ || 'Notiz';
+        document.getElementById('paPADatum').value = a.datum || '';
         document.getElementById('paStraftat').value = a.straftat || '';
         document.getElementById('paFallakte').value = a.fallakte || '';
         document.getElementById('paStatus').value = a.status || 'Offen';
         document.getElementById('paHaftbefehl').value = a.haftbefehl || 'Nein';
-        document.getElementById('paInhalt').value = a.inhalt || '';
+        document.getElementById('paPAInhalt').value = a.inhalt || '';
         openModal('modalPersonenAkte');
     }
 
     function savePersonenAkte() {
         const personId = document.getElementById('paPersonId').value;
         const idx = document.getElementById('paEditIdx').value;
-        const betreff = document.getElementById('paBetreff').value.trim();
+        const betreff = document.getElementById('paPABetreff').value.trim();
         if (!betreff) { showToast('Betreff ist erforderlich!', 'error'); return; }
         const person = personen.find(p => p.id === personId);
         if (!person) return;
         if (!person.akten) person.akten = [];
         const akteData = {
             betreff: betreff,
-            typ: document.getElementById('paTyp').value,
-            datum: document.getElementById('paDatum').value,
+            typ: document.getElementById('paPATyp').value,
+            datum: document.getElementById('paPADatum').value,
             straftat: document.getElementById('paStraftat').value,
             fallakte: document.getElementById('paFallakte').value.trim(),
             status: document.getElementById('paStatus').value,
             haftbefehl: document.getElementById('paHaftbefehl').value,
-            inhalt: document.getElementById('paInhalt').value.trim(),
+            inhalt: document.getElementById('paPAInhalt').value.trim(),
             datumErstellt: new Date().toISOString()
         };
         if (idx !== '' && idx !== undefined) {
@@ -3941,7 +3958,7 @@
         renderPersonen();
         openPersonDetail(personId);
         closeModal('modalPersonenAkte');
-        showToast(idx ? 'Akte aktualisiert!' : 'Akte erstellt!');
+        showToast(idx !== '' && idx !== undefined ? 'Akte aktualisiert!' : 'Akte erstellt!');
     }
 
     function deletePersonenAkte(idx) {
@@ -3993,7 +4010,10 @@
     // ============================================================
     // UTILS
     // ============================================================
-    function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+    function esc(str) {
+        const s = String(str || '');
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
     function formatCurrency(a) { return a.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $'; }
 
     function copyToClipboard(text) {

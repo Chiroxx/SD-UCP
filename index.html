@@ -19,7 +19,7 @@
             </div>
             <p class="login-subtitle">Blaine County Sheriff Department</p>
             <div class="login-tabs">
-                <button class="login-tab active" data-tab="login" style="display:none;"></button>
+                <button class="login-tab active" data-tab="login">Anmelden</button>
                 <button class="login-tab" data-tab="register">Registrieren</button>
             </div>
             <form id="formLogin" class="login-form active">
@@ -845,7 +845,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h3 id="modalPersonTitle">Neue Person</h3>
-                            <button class="modal-close" onclick="closeModal('modalPerson')">&times;</button>
+                            <button class="modal-close" id="closeModalPerson">&times;</button>
                         </div>
                         <div class="modal-body">
                             <input type="hidden" id="personEditId">
@@ -865,7 +865,7 @@
                             <div class="form-group"><label>Notizen</label><textarea id="personNotizen" rows="3" placeholder="Zusaetzliche Informationen..."></textarea></div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="closeModal('modalPerson')">Abbrechen</button>
+                            <button class="btn btn-outline" id="cancelPerson">Abbrechen</button>
                             <button class="btn btn-primary" id="btnSavePerson">Speichern</button>
                         </div>
                     </div>
@@ -875,16 +875,16 @@
                 <div class="modal" id="modalPersonenAkte">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h3 id="modalPATitle">Neue Akte</h3>
-                            <button class="modal-close" onclick="closeModal('modalPersonenAkte')">&times;</button>
+                            <h3 id="paModalPATitle">Neue Akte</h3>
+                            <button class="modal-close" id="closeModalPersonenAkte">&times;</button>
                         </div>
                         <div class="modal-body">
                             <input type="hidden" id="paPersonId">
                             <input type="hidden" id="paEditIdx">
-                            <div class="form-group"><label>Betreff *</label><input type="text" id="paBetreff" required placeholder="z.B. Verkehrskontrolle"></div>
+                            <div class="form-group"><label>Betreff *</label><input type="text" id="paPABetreff" required placeholder="z.B. Verkehrskontrolle"></div>
                             <div class="form-row">
                                 <div class="form-group"><label>Typ</label>
-                                    <select id="paTyp">
+                                    <select id="paPATyp">
                                         <option value="Notiz">Notiz</option>
                                         <option value="Vorfall">Vorfall</option>
                                         <option value="Kontrolle">Kontrolle</option>
@@ -894,7 +894,7 @@
                                         <option value="Sonstiges">Sonstiges</option>
                                     </select>
                                 </div>
-                                <div class="form-group"><label>Datum</label><input type="date" id="paDatum"></div>
+                                <div class="form-group"><label>Datum</label><input type="date" id="paPADatum"></div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group"><label>Straftat</label>
@@ -940,10 +940,10 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-group"><label>Inhalt</label><textarea id="paInhalt" rows="5" placeholder="Details zur Akte..."></textarea></div>
+                            <div class="form-group"><label>Inhalt</label><textarea id="paPAInhalt" rows="5" placeholder="Details zur Akte..."></textarea></div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="closeModal('modalPersonenAkte')">Abbrechen</button>
+                            <button class="btn btn-outline" id="cancelPersonenAkte">Abbrechen</button>
                             <button class="btn btn-primary" id="btnSavePersonenAkte">Speichern</button>
                         </div>
                     </div>
