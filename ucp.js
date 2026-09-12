@@ -117,6 +117,7 @@
     // PERMISSIONS
     // ============================================================
     function getRankLevel(rang) {
+        if (!rang) return 99;
         if (RANG_HIERARCHIE[rang] !== undefined) return RANG_HIERARCHIE[rang];
         const stripped = rang.replace(/^\d+\s*-\s*/, '');
         for (const [key, val] of Object.entries(RANG_HIERARCHIE)) {
@@ -177,6 +178,9 @@
     // APP INIT
     // ============================================================
     function showApp() {
+        if (!currentUser) return;
+        if (currentUser.rank && !currentUser.rang) currentUser.rang = currentUser.rank;
+        if (currentUser.full_name && !currentUser.fullName) currentUser.fullName = currentUser.full_name;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
         document.getElementById('userName').textContent = currentUser.fullName || currentUser.username;
