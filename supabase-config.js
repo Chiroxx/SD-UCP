@@ -42,7 +42,7 @@
         'mediathek': ['titel', 'kategorie', 'autor', 'inhalt', 'link', 'created_at'],
         'news': ['titel', 'inhalt', 'kategorie', 'autor', 'created_at'],
         'settings': ['key', 'value', 'updated_at'],
-        'personen': ['name', 'telefon', 'geburtstag', 'adresse', 'notizen', 'gesucht', 'gesucht_grund', 'akten', 'user_id']
+        'personen': ['name', 'telefon', 'geburtstag', 'adresse', 'notizen', 'gesucht', 'gesucht_grund', 'akten', 'user_id', 'created_at']
     };
 
     var _s = null;
@@ -321,6 +321,11 @@
                         console.log('[DB] currentUser-Sync: ' + cur.username + ' -> Rang ' + cur.rang);
                     }
                 }
+            }
+
+            // Reload in-memory variables in ucp.js
+            if (window.UCP && window.UCP.reloadFromStorage) {
+                window.UCP.reloadFromStorage();
             }
         } catch(e) {
             console.warn('[DB] syncRanks Fehler:', e.message);

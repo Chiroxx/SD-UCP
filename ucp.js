@@ -340,6 +340,48 @@
 
     window.UCP = { switchView };
 
+    // Reload all in-memory arrays from localStorage (called after DB sync)
+    function reloadFromStorage() {
+        const newUsers = JSON.parse(localStorage.getItem('ucp_users'));
+        const newMitarbeiter = JSON.parse(localStorage.getItem('ucp_mitarbeiter'));
+        const newOfficers = JSON.parse(localStorage.getItem('ucp_officers'));
+        const newUnits = JSON.parse(localStorage.getItem('ucp_units'));
+        const newRechnungen = JSON.parse(localStorage.getItem('ucp_rechnungen'));
+        const newStreifen = JSON.parse(localStorage.getItem('ucp_streifen'));
+        const newNachrichten = JSON.parse(localStorage.getItem('ucp_nachrichten'));
+        const newTermine = JSON.parse(localStorage.getItem('ucp_termine'));
+        const newNews = JSON.parse(localStorage.getItem('ucp_news'));
+        const newAusbildungen = JSON.parse(localStorage.getItem('ucp_ausbildungen'));
+        const newCases = JSON.parse(localStorage.getItem('ucp_cases'));
+        const newAkten = JSON.parse(localStorage.getItem('ucp_akten'));
+        const newPersonalakten = JSON.parse(localStorage.getItem('ucp_personalakten'));
+        const newBerichte = JSON.parse(localStorage.getItem('ucp_berichte'));
+        const newPersonen = JSON.parse(localStorage.getItem('ucp_personen'));
+        const newMediathek = JSON.parse(localStorage.getItem('ucp_mediathek'));
+
+        if (newUsers) users = newUsers;
+        if (newMitarbeiter) mitarbeiter = newMitarbeiter;
+        if (newOfficers) officers = newOfficers;
+        if (newUnits) units = newUnits;
+        if (newRechnungen) rechnungen = newRechnungen;
+        if (newStreifen) streifen = newStreifen;
+        if (newNachrichten) nachrichten = newNachrichten;
+        if (newTermine) termine = newTermine;
+        if (newNews) news = newNews;
+        if (newAusbildungen) ausbildungen = newAusbildungen;
+        if (newCases) cases = newCases;
+        if (newAkten) akten = newAkten;
+        if (newPersonalakten) personalakten = newPersonalakten;
+        if (newBerichte) berichte = newBerichte;
+        if (newPersonen) personen = newPersonen;
+        if (newMediathek) mediathek = newMediathek;
+
+        // Also update currentUser from synced users
+        const cur = JSON.parse(localStorage.getItem('ucp_currentUser'));
+        if (cur) currentUser = cur;
+    }
+    window.UCP.reloadFromStorage = reloadFromStorage;
+
     function switchView(viewId) {
         document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -785,7 +827,7 @@
         const filterPrio = document.getElementById('filterCasePrioritaet')?.value || '';
 
         let filtered = cases.filter(c => {
-            const matchSearch = !searchVal || c.titel.toLowerCase().includes(searchVal) || c.aktenzeichen.toLowerCase().includes(searchVal) || c.ort.toLowerCase().includes(searchVal);
+            const matchSearch = !searchVal || (c.titel || '').toLowerCase().includes(searchVal) || (c.aktenzeichen || '').toLowerCase().includes(searchVal) || (c.ort || '').toLowerCase().includes(searchVal);
             const matchStatus = !filterStatus || c.status === filterStatus;
             const matchPrio = !filterPrio || c.prioritaet === filterPrio;
             return matchSearch && matchStatus && matchPrio;
@@ -919,7 +961,7 @@
         const filterStatus = document.getElementById('filterAkteStatus')?.value || '';
 
         let filtered = akten.filter(a => {
-            const matchSearch = !searchVal || a.titel.toLowerCase().includes(searchVal) || a.inhalt.toLowerCase().includes(searchVal) || a.aktenzeichen.toLowerCase().includes(searchVal);
+            const matchSearch = !searchVal || (a.titel || '').toLowerCase().includes(searchVal) || (a.inhalt || '').toLowerCase().includes(searchVal) || (a.aktenzeichen || '').toLowerCase().includes(searchVal);
             const matchKat = !filterKat || a.kategorie === filterKat;
             const matchStatus = !filterStatus || a.status === filterStatus;
             return matchSearch && matchKat && matchStatus;
@@ -1030,16 +1072,18 @@
         if (!sel) return;
         sel.innerHTML = '<option value="">Mitarbeiter waehlen...</option>';
         mitarbeiter.forEach(m => {
+            const name = m.vorname + ' ' + m.nachname;
             const opt = document.createElement('option');
-            opt.value = m.name;
-            opt.textContent = `${m.name} (${m.rang})`;
+            opt.value = name;
+            opt.textContent = `${name} (${m.rang})`;
             sel.appendChild(opt);
         });
         users.forEach(u => {
-            if (!mitarbeiter.find(m => m.name === u.username)) {
+            const uName = u.fullName || u.username;
+            if (!mitarbeiter.find(m => (m.vorname + ' ' + m.nachname) === uName)) {
                 const opt = document.createElement('option');
-                opt.value = u.username;
-                opt.textContent = `${u.username} (Rang ${u.rang || '-'})`;
+                opt.value = uName;
+                opt.textContent = `${uName} (${u.rang || '-'})`;
                 sel.appendChild(opt);
             }
         });
@@ -1057,7 +1101,7 @@
         const filterTyp = document.getElementById('filterPATyp')?.value || '';
 
         let filtered = personalakten.filter(p => {
-            const matchSearch = !searchVal || p.mitarbeiter.toLowerCase().includes(searchVal) || p.betreff.toLowerCase().includes(searchVal) || p.inhalt.toLowerCase().includes(searchVal);
+            const matchSearch = !searchVal || (p.mitarbeiter || '').toLowerCase().includes(searchVal) || (p.betreff || '').toLowerCase().includes(searchVal) || (p.inhalt || '').toLowerCase().includes(searchVal);
             const matchTyp = !filterTyp || p.typ === filterTyp;
             return matchSearch && matchTyp;
         });
@@ -1163,7 +1207,7 @@
         const currentRang = m.rang || currentUser.rang || '-';
         document.getElementById('profRang').textContent = currentRang;
         document.getElementById('profAbteilung').textContent = m.abteilung || '-';
-        document.getElementById('profFunktion').textContent = m.funktion || '-';
+        document.getElementById('profFunktion').textContent = Array.isArray(m.funktion) ? m.funktion.join(', ') || '-' : (m.funktion || '-');
         document.getElementById('profDienstnr').textContent = m.dienstnr || '-';
 
         document.getElementById('profName').value = currentUser.username;
@@ -1280,7 +1324,7 @@
                     <div class="msg-icon"><i class="fas ${isEmpfangen ? 'fa-envelope' : 'fa-paper-plane'}"></i></div>
                     <div class="msg-body">
                         <div class="msg-betreff">${esc(m.betreff)}</div>
-                        <div class="msg-preview">${esc(m.text.substring(0, 80))}${m.text.length > 80 ? '...' : ''}</div>
+                        <div class="msg-preview">${esc((m.text || '').substring(0, 80))}${(m.text || '').length > 80 ? '...' : ''}</div>
                     </div>
                     <div class="msg-meta">
                         <span class="msg-date">${esc(m.datum)} ${esc(m.uhrzeit)}</span>
@@ -1429,7 +1473,7 @@
         const filterTyp = document.getElementById('filterBerichtTyp')?.value || '';
 
         let filtered = berichte.filter(b => {
-            const matchSearch = !searchVal || b.vorfall.toLowerCase().includes(searchVal) || b.ort.toLowerCase().includes(searchVal) || b.aktenzeichen.toLowerCase().includes(searchVal);
+            const matchSearch = !searchVal || (b.vorfall || '').toLowerCase().includes(searchVal) || (b.ort || '').toLowerCase().includes(searchVal) || (b.aktenzeichen || '').toLowerCase().includes(searchVal);
             const matchStatus = !filterStatus || b.status === filterStatus;
             const matchTyp = !filterTyp || b.typ === filterTyp;
             return matchSearch && matchStatus && matchTyp;
@@ -1506,7 +1550,7 @@
         const filterKat = document.getElementById('filterMedKategorie')?.value || '';
 
         let filtered = mediathek.filter(m => {
-            const matchSearch = !searchVal || m.titel.toLowerCase().includes(searchVal) || m.inhalt.toLowerCase().includes(searchVal);
+            const matchSearch = !searchVal || (m.titel || '').toLowerCase().includes(searchVal) || (m.inhalt || '').toLowerCase().includes(searchVal);
             const matchKat = !filterKat || m.kategorie === filterKat;
             return matchSearch && matchKat;
         });
@@ -1538,14 +1582,15 @@
                     <div class="ausb-details"><p style="white-space:pre-wrap;">${esc(m.inhalt)}</p></div>
                     ${m.link ? `<div class="ausb-details"><a href="${esc(m.link)}" target="_blank" style="color:var(--accent-blue);"><i class="fas fa-link"></i> Link oeffnen</a></div>` : ''}
                     <div class="ausb-actions">
-                        <button class="btn btn-sm btn-primary" onclick="UCP.editMediathek(${origIdx})"><i class="fas fa-pen"></i> Bearbeiten</button>
-                        <button class="btn btn-sm btn-danger" onclick="UCP.removeMediathek(${origIdx})"><i class="fas fa-trash"></i> Loeschen</button>
+                        ${isLeadership() ? `<button class="btn btn-sm btn-primary" onclick="UCP.editMediathek(${origIdx})"><i class="fas fa-pen"></i> Bearbeiten</button>` : ''}
+                        ${isLeadership() ? `<button class="btn btn-sm btn-danger" onclick="UCP.removeMediathek(${origIdx})"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
                     </div>
                 </div>`;
         }).join('');
     }
 
     window.UCP.editMediathek = function(idx) {
+        if (!isLeadership()) { showToast('Keine Berechtigung!', 'error'); return; }
         const m = mediathek[idx];
         document.getElementById('medTitel').value = m.titel;
         document.getElementById('medKategorie').value = m.kategorie;
@@ -1558,6 +1603,7 @@
     };
 
     window.UCP.removeMediathek = function(idx) {
+        if (!isLeadership()) { showToast('Keine Berechtigung!', 'error'); return; }
         if (!confirm('Mediathek-Eintrag loeschen?')) return;
         mediathek.splice(idx, 1);
         localStorage.setItem('ucp_mediathek', JSON.stringify(mediathek));
@@ -1591,7 +1637,7 @@
                         <span class="date-day">${day}</span>
                         <span class="date-month">${month}</span>
                     </div>
-                    <div class="termin-typ-badge typ-${t.typ.toLowerCase()}">${esc(t.typ)}</div>
+                    <div class="termin-typ-badge typ-${(t.typ || '').toLowerCase()}">${esc(t.typ)}</div>
                     <div class="dash-termin-info">
                         <div class="termin-title">${esc(t.titel)}</div>
                         <div class="termin-meta">
@@ -1751,7 +1797,7 @@
                 <td>${esc(m.rang)}${getRankLevel(m.rang) === 0 ? ' <span style="color:var(--accent-red);font-size:0.65rem;font-weight:700;"><i class="fas fa-shield-halved"></i></span>' : m.isAdmin ? ' <span style="color:var(--accent-yellow);font-size:0.65rem;"><i class="fas fa-shield-halved"></i></span>' : ''}</td>
                 <td>${esc(m.abteilung || '-')}</td>
                 <td>${esc(funktionText)}</td>
-                <td><span class="status-badge status-${m.status.toLowerCase()}">${m.status}</span></td>
+                <td><span class="status-badge status-${(m.status || '').toLowerCase()}">${m.status || '-'}</span></td>
                 <td>${esc(m.eintritt || '-')}</td>
                 <td>
                     <button class="btn btn-sm btn-outline" onclick="UCP.showMitarbeiterDetail(${origIdx})"><i class="fas fa-user"></i> Profil</button>
@@ -1813,7 +1859,7 @@
                 <div class="detail-item"><span class="detail-label">Dienstnummer</span><span class="detail-value">${esc(m.dienstnr)}</span></div>
                 <div class="detail-item"><span class="detail-label">Rang</span><span class="detail-value">${esc(m.rang)}${getRankLevel(m.rang) === 0 ? ' <span style="color:var(--accent-red);font-size:0.75rem;font-weight:700;"><i class="fas fa-shield-halved"></i> Ober Admin</span>' : m.isAdmin ? ' <span style="color:var(--accent-yellow);font-size:0.75rem;"><i class="fas fa-shield-halved"></i> Admin</span>' : ''}</span></div>
                 <div class="detail-item"><span class="detail-label">Telefon</span><span class="detail-value">${esc(m.telefon || '-')}</span></div>
-                <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="status-badge status-${m.status.toLowerCase()}">${m.status}</span></span></div>
+                <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value"><span class="status-badge status-${(m.status || '').toLowerCase()}">${m.status || '-'}</span></span></div>
                 <div class="detail-item"><span class="detail-label">Abteilung</span><span class="detail-value">${esc(m.abteilung || '-')}</span></div>
                 <div class="detail-item"><span class="detail-label">Funktion</span><span class="detail-value">${funktionHtml}</span></div>
                 <div class="detail-item"><span class="detail-label">Eintritt</span><span class="detail-value">${esc(m.eintritt || '-')}</span></div>
@@ -2460,7 +2506,7 @@
 
             const div = document.createElement('div');
             div.className = 'cal-day' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
-            div.innerHTML = `<div class="cal-day-num">${d}</div><div class="cal-day-events">${events.map(e => `<div class="cal-event event-${e.typ.toLowerCase()}" onclick="event.stopPropagation(); UCP.showTerminDetail('${e.datum}', ${termine.indexOf(e)})">${esc(e.titel)}</div>`).join('')}</div>`;
+            div.innerHTML = `<div class="cal-day-num">${d}</div><div class="cal-day-events">${events.map(e => `<div class="cal-event event-${(e.typ || '').toLowerCase()}" onclick="event.stopPropagation(); UCP.showTerminDetail('${e.datum}', ${termine.indexOf(e)})">${esc(e.titel)}</div>`).join('')}</div>`;
             div.addEventListener('click', () => { calSelectedDate = dateStr; renderCalendar(); loadTermineListe(); });
             daysContainer.appendChild(div);
         }
@@ -2507,7 +2553,7 @@
             const canEdit = isAdmin() || t.erstelltVon === (currentUser.fullName || currentUser.username);
             return `
                 <div class="termin-card">
-                    <div class="termin-typ-badge typ-${t.typ.toLowerCase()}">${esc(t.typ)}</div>
+                    <div class="termin-typ-badge typ-${(t.typ || '').toLowerCase()}">${esc(t.typ)}</div>
                     <div class="termin-info">
                         <div class="termin-title">${esc(t.titel)}</div>
                         <div class="termin-meta">
@@ -2537,7 +2583,7 @@
         content.innerHTML = `
             <div class="termin-detail-grid">
                 <div class="termin-detail-item"><span class="termin-detail-label">Titel</span><span class="termin-detail-value">${esc(t.titel)}</span></div>
-                <div class="termin-detail-item"><span class="termin-detail-label">Typ</span><span class="termin-detail-value"><span class="termin-typ-badge typ-${t.typ.toLowerCase()}">${esc(t.typ)}</span></span></div>
+                <div class="termin-detail-item"><span class="termin-detail-label">Typ</span><span class="termin-detail-value"><span class="termin-typ-badge typ-${(t.typ || '').toLowerCase()}">${esc(t.typ)}</span></span></div>
                 <div class="termin-detail-item"><span class="termin-detail-label">Datum</span><span class="termin-detail-value">${datumStr}</span></div>
                 <div class="termin-detail-item"><span class="termin-detail-label">Uhrzeit</span><span class="termin-detail-value">${t.uhrzeit ? t.uhrzeit + ' Uhr' : '-'}</span></div>
                 <div class="termin-detail-item"><span class="termin-detail-label">Ort</span><span class="termin-detail-value">${esc(t.ort || '-')}</span></div>
@@ -2584,7 +2630,7 @@
         if (rechnungen.length === 0) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Keine Rechnungen.</td></tr>'; updateRechnungSummary(); return; }
         rechnungen.forEach((r, i) => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${i+1}</td><td>${r.datum}</td><td>${esc(r.betreff)}</td><td>${formatCurrency(r.betrag)}</td><td><span class="status-badge status-${r.status.toLowerCase()}">${r.status}</span></td><td>${r.status === 'Offen' ? `<button class="btn btn-sm btn-outline" onclick="UCP.stornRechnung(${i})"><i class="fas fa-times"></i> Stornieren</button>` : '-'}</td>`;
+            tr.innerHTML = `<td>${i+1}</td><td>${r.datum}</td><td>${esc(r.betreff)}</td><td>${formatCurrency(r.betrag)}</td><td><span class="status-badge status-${(r.status || '').toLowerCase()}">${r.status}</span></td><td>${r.status === 'Offen' ? `<button class="btn btn-sm btn-outline" onclick="UCP.stornRechnung(${i})"><i class="fas fa-times"></i> Stornieren</button>` : '-'}</td>`;
             tbody.appendChild(tr);
         });
         updateRechnungSummary();
@@ -2839,10 +2885,15 @@
                 showToast('Mitarbeiter aktualisiert!');
             } else {
                 if (!canAddMitarbeiter()) { showToast('Keine Berechtigung!', 'error'); return; }
+                if (getRankLevel(data.rang) === 0 && getRankLevel(currentUser.rang) !== 0) {
+                    showToast('Nur Sheriff Techniker (Rang 00) darf Rang 00 vergeben!', 'error');
+                    return;
+                }
                 mitarbeiter.push(data);
                 showToast('Mitarbeiter hinzugefuegt!');
             }
             localStorage.setItem('ucp_mitarbeiter', JSON.stringify(mitarbeiter));
+        loadMitarbeiter();
         loadMitarbeiter2();
             updateDashboard();
             closeModal('modalMitarbeiter');
@@ -3124,8 +3175,34 @@
             if (!username) { showToast('Benutzername erforderlich!', 'error'); return; }
             if (!password) { showToast('Passwort erforderlich!', 'error'); return; }
             if (users.find(u => u.username === username)) { showToast('Benutzername existiert bereits!', 'error'); return; }
+            // Rang 00 Sperre
+            if (getRankLevel(rang) === 0 && getRankLevel(currentUser.rang) !== 0) {
+                showToast('Nur Sheriff Techniker (Rang 00) darf Rang 00 vergeben!', 'error');
+                return;
+            }
             users.push({ username, password, fullName: fullName || username, dienstnr, rang, createdAt: new Date().toISOString() });
             localStorage.setItem('ucp_users', JSON.stringify(users));
+
+            // Automatisch Mitarbeiter-Eintrag erstellen
+            const nameParts = (fullName || username).split(' ');
+            const vorname = nameParts[0] || username;
+            const nachname = nameParts.slice(1).join(' ') || '';
+            mitarbeiter.push({
+                vorname: vorname,
+                nachname: nachname,
+                dienstnr: dienstnr,
+                rang: rang,
+                telefon: '',
+                status: 'Aktiv',
+                abteilung: 'Allgemein',
+                funktion: [],
+                notizen: '',
+                user_id: username,
+                eintritt: new Date().toLocaleDateString('de-DE'),
+                createdAt: new Date().toISOString()
+            });
+            localStorage.setItem('ucp_mitarbeiter', JSON.stringify(mitarbeiter));
+
             document.getElementById('adminNewUsername').value = '';
             document.getElementById('adminNewPassword').value = '';
             document.getElementById('adminNewFullName').value = '';
@@ -3357,7 +3434,7 @@
             delete document.getElementById('formAkte').dataset.editIndex;
             document.getElementById('akteModalTitle').textContent = 'Neue Akte';
             document.getElementById('akteDatum').value = new Date().toISOString().split('T')[0];
-            document.getElementById('akteAutor').value = currentUser;
+            document.getElementById('akteAutor').value = currentUser.fullName || currentUser.username;
             populateAkteCaseSelect();
             openModal('modalAkte');
         });
@@ -3402,7 +3479,7 @@
             delete document.getElementById('formPA').dataset.editIndex;
             document.getElementById('paModalTitle').textContent = 'Neuer Personalakte-Eintrag';
             document.getElementById('paDatum').value = new Date().toISOString().split('T')[0];
-            document.getElementById('paErsteller').value = currentUser;
+            document.getElementById('paErsteller').value = currentUser.fullName || currentUser.username;
             populatePAMitarbeiterSelect();
             openModal('modalPA');
         });
