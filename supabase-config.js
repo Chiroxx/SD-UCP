@@ -28,16 +28,16 @@
     var DB_FIELDS = {
         'users': ['username', 'password', 'full_name', 'dienstnr', 'rank', 'is_admin', 'created_at'],
         'officers': ['name', 'dienstnr', 'status', 'einsatzfeld', 'position', 'fahrzeug', 'code', 'updated_at'],
-        'mitarbeiter': ['vorname', 'nachname', 'dienstnr', 'rang', 'abteilung', 'funktion', 'status', 'eintrittsdatum', 'telefon', 'email', 'adresse', 'geburtstag', 'notfallkontakt', 'ausbildungen', 'user_id'],
+        'mitarbeiter': ['vorname', 'nachname', 'dienstnr', 'rang', 'abteilung', 'funktion', 'status', 'eintritt', 'telefon', 'email', 'adresse', 'geburtstag', 'notfallkontakt', 'ausbildungen', 'user_id'],
         'cases': ['titel', 'aktenzeichen', 'typ', 'status', 'prioritaet', 'fallfuehrer', 'ort', 'beteiligte', 'beschreibung', 'notizen', 'erstellt_von', 'created_at'],
         'akten': ['aktenzeichen', 'titel', 'kategorie', 'status', 'autor', 'datum', 'inhalt', 'link', 'case_id', 'created_at'],
         'personalakten': ['mitarbeiter', 'typ', 'datum', 'ersteller', 'betreff', 'inhalt', 'created_at'],
         'nachrichten': ['von', 'an', 'betreff', 'nachricht', 'gelesen', 'created_at'],
-        'termine': ['titel', 'beschreibung', 'datum', 'uhrzeit', 'typ', 'erstellt_von', 'created_at'],
+        'termine': ['titel', 'beschreibung', 'datum', 'uhrzeit', 'typ', 'ort', 'erstellt_von', 'created_at'],
         'rechnungen': ['titel', 'betrag', 'status', 'kategorie', 'bemerkung', 'datum', 'created_at'],
         'streifen': ['nummer', 'fahrzeug', 'gebiet', 'max_plaetze', 'besetzung', 'created_at'],
         'units': ['name', 'kuerzel', 'beschreibung', 'leiter', 'mitglieder', 'created_at'],
-        'ausbildungen': ['titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'ausbilder', 'plaetze', 'teilnehmer', 'bewertungen', 'created_at'],
+        'ausbildungen': ['titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'beschreibung', 'ausbilder', 'plaetze', 'teilnehmer', 'teilnehmer_notizen', 'bewertungen', 'created_at'],
         'berichte': ['titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'beteiligte', 'vorfall', 'massnahmen', 'aktenzeichen', 'autor', 'created_at'],
         'mediathek': ['titel', 'kategorie', 'autor', 'inhalt', 'link', 'created_at'],
         'news': ['titel', 'inhalt', 'kategorie', 'autor', 'created_at'],
@@ -63,19 +63,21 @@
             row.id = obj.id;
         }
         fields.forEach(function(f) {
+            // camelCase -> DB direct
             if (obj[f] !== undefined) {
-                // Leere Strings bei Date-Feldern -> null
-                if (obj[f] === '' && (f === 'geburtstag' || f === 'datum')) {
-                    row[f] = null;
-                    return;
+                if (obj[f] === '' && (f.includes('datum') || f.includes('date') || f === 'geburtstag')) {
+                    row[f] = null; return;
                 }
-                row[f] = obj[f];
-                return;
+                row[f] = obj[f]; return;
             }
+            // camelCase Mappings
             if (f === 'full_name' && obj.fullName) { row[f] = obj.fullName; return; }
             if (f === 'rank' && obj.rang) { row[f] = obj.rang; return; }
             if (f === 'is_admin' && obj.isAdmin !== undefined) { row[f] = obj.isAdmin; return; }
             if (f === 'gesucht_grund' && obj.gesuchtGrund) { row[f] = obj.gesuchtGrund; return; }
+            if (f === 'erstellt_von' && obj.erstelltVon) { row[f] = obj.erstelltVon; return; }
+            if (f === 'teilnehmer_notizen' && obj.teilnehmerNotizen) { row[f] = obj.teilnehmerNotizen; return; }
+            if (f === 'beschreibung' && obj.beschreibung) { row[f] = obj.beschreibung; return; }
             if (f === 'created_at') { row[f] = obj.createdAt || new Date().toISOString(); return; }
             if (f === 'updated_at') { row[f] = new Date().toISOString(); return; }
         });
@@ -88,6 +90,8 @@
         if (row.rank !== undefined && !row.rang) row.rang = row.rank;
         if (row.is_admin !== undefined && row.isAdmin === undefined) row.isAdmin = row.is_admin;
         if (row.gesucht_grund !== undefined && !row.gesuchtGrund) row.gesuchtGrund = row.gesucht_grund;
+        if (row.erstellt_von !== undefined && !row.erstelltVon) row.erstelltVon = row.erstellt_von;
+        if (row.teilnehmer_notizen !== undefined && !row.teilnehmerNotizen) row.teilnehmerNotizen = row.teilnehmer_notizen;
         if (row.created_at !== undefined && !row.createdAt) row.createdAt = row.created_at;
         return row;
     }
