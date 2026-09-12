@@ -2784,7 +2784,13 @@
                 if (mitRangSel) {
                     Array.from(mitRangSel.options).forEach(opt => {
                         if (!opt.value) { opt.disabled = false; return; }
-                        opt.disabled = myLevel <= 4 ? false : getRankLevel(opt.value) <= myLevel;
+                        const optLevel = getRankLevel(opt.value);
+                        // Rang 00 (Sheriff Techniker) nur waehlen wenn man selber Rang 00 ist
+                        if (optLevel === 0 && myLevel !== 0) { opt.disabled = true; return; }
+                        // Leadership (01-04) kann alles andere waehlen
+                        if (myLevel <= 4) { opt.disabled = false; return; }
+                        // Personalabteilung: kann nur hoehere Raenge waehlen
+                        opt.disabled = optLevel <= myLevel;
                     });
                 }
                 openModal('modalMitarbeiter');
