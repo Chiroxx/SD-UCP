@@ -149,7 +149,11 @@
 
     function getCurrentMitarbeiter() {
         if (!currentUser) return null;
-        return mitarbeiter.find(m => m.vorname + ' ' + m.nachname === (currentUser.fullName || currentUser.username) || m.dienstnr === currentUser.dienstnr) || null;
+        return mitarbeiter.find(m =>
+            m.user_id === currentUser.username ||
+            m.vorname + ' ' + m.nachname === (currentUser.fullName || currentUser.username) ||
+            m.dienstnr === currentUser.dienstnr
+        ) || null;
     }
 
     function hasFunktion(funktion) {
@@ -1090,13 +1094,14 @@
                 <p>${esc(p.inhalt)}</p>
             </div>
             <div class="case-actions">
-                <button class="btn btn-sm btn-primary" onclick="UCP.editPA(${i})"><i class="fas fa-pen"></i> Bearbeiten</button>
-                <button class="btn btn-sm btn-danger" onclick="UCP.removePA(${i})"><i class="fas fa-trash"></i> Loeschen</button>
+                ${canAccessPersonalakten() ? `<button class="btn btn-sm btn-primary" onclick="UCP.editPA(${i})"><i class="fas fa-pen"></i> Bearbeiten</button>` : ''}
+                ${canAccessPersonalakten() ? `<button class="btn btn-sm btn-danger" onclick="UCP.removePA(${i})"><i class="fas fa-trash"></i> Loeschen</button>` : ''}
             </div>`;
         openModal('modalPADetail');
     };
 
     window.UCP.editPA = function(i) {
+        if (!canAccessPersonalakten()) { showToast('Keine Berechtigung!', 'error'); return; }
         const p = personalakten[i];
         populatePAMitarbeiterSelect();
         document.getElementById('paMitarbeiter').value = p.mitarbeiter;
@@ -1112,6 +1117,7 @@
     };
 
     window.UCP.removePA = function(i) {
+        if (!canAccessPersonalakten()) { showToast('Keine Berechtigung!', 'error'); return; }
         if (!confirm('Personalakte-Eintrag loeschen?')) return;
         personalakten.splice(i, 1);
         localStorage.setItem('ucp_personalakten', JSON.stringify(personalakten));
@@ -1840,6 +1846,12 @@
         if (getRankLevel(currentUser.rang) > 0) { showToast('Nur Sheriff Techniker kann Admin-Rechte vergeben!', 'error'); return; }
         const m = mitarbeiter[i];
         m.isAdmin = !m.isAdmin;
+        // Sync isAdmin to users table
+        const syncUser = users.find(u => u.username === m.user_id || (u.fullName || u.username) === (m.vorname + ' ' + m.nachname));
+        if (syncUser) {
+            syncUser.isAdmin = m.isAdmin;
+            localStorage.setItem('ucp_users', JSON.stringify(users));
+        }
         localStorage.setItem('ucp_mitarbeiter', JSON.stringify(mitarbeiter));
         const用户名 = m.vorname + ' ' + m.nachname;
         showToast(m.isAdmin ? `${用户名} ist jetzt Admin!` : `${用户名} ist kein Admin mehr.`);
@@ -2771,6 +2783,22 @@
             if (idx !== undefined && idx !== '') {
                 if (!canEditUser(data.rang)) { showToast('Keine Berechtigung fuer diesen Rang!', 'error'); return; }
                 mitarbeiter[parseInt(idx)] = { ...mitarbeiter[parseInt(idx)], ...data };
+                // Sync rang + fullName + dienstnr to users table
+                const syncUser = users.find(u => u.username === mitarbeiter[parseInt(idx)].user_id || (u.fullName || u.username) === (mitarbeiter[parseInt(idx)].vorname + ' ' + mitarbeiter[parseInt(idx)].nachname));
+                if (syncUser) {
+                    syncUser.rang = data.rang;
+                    syncUser.fullName = data.vorname + ' ' + data.nachname;
+                    syncUser.dienstnr = data.dienstnr;
+                    localStorage.setItem('ucp_users', JSON.stringify(users));
+                }
+                // If editing own entry, update currentUser too
+                if (syncUser && syncUser.username === currentUser.username) {
+                    currentUser.rang = data.rang;
+                    currentUser.fullName = data.vorname + ' ' + data.nachname;
+                    currentUser.dienstnr = data.dienstnr;
+                    localStorage.setItem('ucp_currentUser', JSON.stringify(currentUser));
+                    document.getElementById('userRank').textContent = currentUser.rang || 'Beamter';
+                }
                 showToast('Mitarbeiter aktualisiert!');
             } else {
                 if (!canAddMitarbeiter()) { showToast('Keine Berechtigung!', 'error'); return; }
@@ -3332,6 +3360,7 @@
 
         // === PERSONALAKTEN ===
         document.getElementById('btnNeuePA')?.addEventListener('click', () => {
+            if (!canAccessPersonalakten()) { showToast('Keine Berechtigung!', 'error'); return; }
             document.getElementById('formPA').reset();
             delete document.getElementById('formPA').dataset.editIndex;
             document.getElementById('paModalTitle').textContent = 'Neuer Personalakte-Eintrag';
@@ -3343,6 +3372,7 @@
 
         document.getElementById('formPA')?.addEventListener('submit', (e) => {
             e.preventDefault();
+            if (!canAccessPersonalakten()) { showToast('Keine Berechtigung!', 'error'); return; }
             const data = {
                 mitarbeiter: document.getElementById('paMitarbeiter').value,
                 typ: document.getElementById('paTyp').value,
