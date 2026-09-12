@@ -220,6 +220,23 @@ INSERT INTO users (username, password, full_name, dienstnr, rank, is_admin)
 VALUES ('Miguel.Hauser', 'admin123', 'Miguel Hauser', '0001', '00 - Sheriff Techniker', TRUE)
 ON CONFLICT (username) DO NOTHING;
 
+-- ============================================================
+-- PERSONEN-AKTEN
+-- ============================================================
+CREATE TABLE IF NOT EXISTS personen (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    telefon TEXT,
+    geburtstag DATE,
+    adresse TEXT,
+    notizen TEXT,
+    akten JSONB DEFAULT '[]',
+    user_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE personen DISABLE ROW LEVEL SECURITY;
+
 -- Standard-Einstellungen
 INSERT INTO settings (key, value) VALUES
 ('registrierung', 'true'),

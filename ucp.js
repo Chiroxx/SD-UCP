@@ -238,6 +238,7 @@
             { id: 'leitstelle', label: 'Leitstelle', icon: 'fa-solid fa-tower-broadcast' },
             { id: 'mitarbeiter', label: 'Roster', icon: 'fa-solid fa-users' },
             { id: 'personalakten', label: 'Personalakten', icon: 'fa-solid fa-folder-user' },
+            { id: 'personen', label: 'Personen-Akten', icon: 'fa-solid fa-id-card' },
             { id: 'ausbildung', label: 'Ausbildung', icon: 'fa-solid fa-graduation-cap' },
             { id: 'kalender', label: 'Kalender', icon: 'fa-solid fa-calendar-days' },
             { id: 'units', label: 'Units', icon: 'fa-solid fa-crosshairs' },
@@ -3294,6 +3295,19 @@
         document.getElementById('filterPATyp')?.addEventListener('change', loadPersonalakten);
         document.getElementById('searchPA')?.addEventListener('input', loadPersonalakten);
 
+        // === PERSONEN-AKTEN ===
+        document.getElementById('btnNeuePerson')?.addEventListener('click', openNewPersonModal);
+        document.getElementById('btnSavePerson')?.addEventListener('click', savePerson);
+        document.getElementById('btnEditPerson')?.addEventListener('click', openEditPersonModal);
+        document.getElementById('btnDeletePerson')?.addEventListener('click', deletePerson);
+        document.getElementById('btnNeuePersonenAkte')?.addEventListener('click', openNewPersonenAkteModal);
+        document.getElementById('btnSavePersonenAkte')?.addEventListener('click', savePersonenAkte);
+        document.getElementById('closePersonDetail')?.addEventListener('click', () => {
+            document.getElementById('personenDetailOverlay').style.display = 'none';
+            selectedPersonId = null;
+        });
+        document.getElementById('searchPersonen')?.addEventListener('input', renderPersonen);
+
         // === PROFILSEITE ===
         document.getElementById('formProfil')?.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -3472,6 +3486,226 @@
             document.getElementById('formLogin').classList.add('active');
         });
     }
+
+    // ============================================================
+    // PERSONEN-AKTEN
+    // ============================================================
+    let personen = JSON.parse(localStorage.getItem('ucp_personen')) || [];
+    let selectedPersonId = null;
+
+    function savePersonen() {
+        localStorage.setItem('ucp_personen', JSON.stringify(personen));
+    }
+
+    function renderPersonen() {
+        const liste = document.getElementById('personenListe');
+        if (!liste) return;
+        const search = (document.getElementById('searchPersonen')?.value || '').toLowerCase();
+        let filtered = personen.filter(p => {
+            if (!search) return true;
+            return (p.name || '').toLowerCase().includes(search) ||
+                   (p.telefon || '').toLowerCase().includes(search) ||
+                   (p.adresse || '').toLowerCase().includes(search);
+        });
+
+        const gesamtEl = document.getElementById('personenGesamt');
+        const aktenEl = document.getElementById('personenAkten');
+        if (gesamtEl) gesamtEl.textContent = personen.length;
+        if (aktenEl) aktenEl.textContent = personen.reduce((s, p) => s + (p.akten?.length || 0), 0);
+
+        if (filtered.length === 0) {
+            liste.innerHTML = '<div class="empty-state"><i class="fas fa-id-card" style="font-size:2rem;opacity:0.3;margin-bottom:0.5rem;"></i><p style="color:var(--text-muted);">Keine Personen vorhanden</p></div>';
+            return;
+        }
+
+        liste.innerHTML = filtered.map(p => {
+            const aktenCount = p.akten?.length || 0;
+            const geb = p.geburtstag ? new Date(p.geburtstag).toLocaleDateString('de-DE') : '-';
+            return `<div class="person-card" style="display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);margin-bottom:0.5rem;cursor:pointer;background:var(--bg-card);" onclick="UCP.openPersonDetail('${p.id}')">
+                <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;">${(p.name||'?')[0].toUpperCase()}</div>
+                <div style="flex:1;">
+                    <div style="font-weight:600;color:var(--text-primary);">${esc(p.name)}</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">${esc(p.telefon || '-')} | ${geb}</div>
+                </div>
+                <span style="background:var(--bg-secondary);padding:0.2rem 0.5rem;border-radius:var(--radius-sm);font-size:0.75rem;color:var(--text-muted);">${aktenCount} Akte${aktenCount !== 1 ? 'n' : ''}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function openPersonDetail(id) {
+        const person = personen.find(p => p.id === id);
+        if (!person) return;
+        selectedPersonId = id;
+
+        document.getElementById('personDetailName').textContent = person.name;
+        const geb = person.geburtstag ? new Date(person.geburtstag).toLocaleDateString('de-DE') : '-';
+        document.getElementById('personDetailInfo').innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem;">
+                <div style="padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Telefon</span><br><span style="color:var(--text-primary);">${esc(person.telefon || '-')}</span></div>
+                <div style="padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Geburtstag</span><br><span style="color:var(--text-primary);">${geb}</span></div>
+                <div style="padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Adresse</span><br><span style="color:var(--text-primary);">${esc(person.adresse || '-')}</span></div>
+            </div>
+            ${person.notizen ? `<div style="margin-top:0.5rem;padding:0.5rem;background:var(--bg-secondary);border-radius:var(--radius-sm);"><span style="color:var(--text-muted);font-size:0.8rem;">Notizen</span><br><span style="color:var(--text-primary);">${esc(person.notizen)}</span></div>` : ''}
+        `;
+        renderPersonenAkten(person);
+        document.getElementById('personenDetailOverlay').style.display = 'block';
+    }
+
+    function renderPersonenAkten(person) {
+        const liste = document.getElementById('personenAktenListe');
+        if (!liste) return;
+        const akten = person.akten || [];
+        if (akten.length === 0) {
+            liste.innerHTML = '<div class="empty-state"><p style="color:var(--text-muted);">Noch keine Akten vorhanden</p></div>';
+            return;
+        }
+        liste.innerHTML = akten.map((a, idx) => {
+            const datum = a.datum ? new Date(a.datum).toLocaleDateString('de-DE') : '-';
+            return `<div style="padding:0.75rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);margin-bottom:0.5rem;background:var(--bg-secondary);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div>
+                        <span style="background:var(--primary);color:#fff;padding:0.1rem 0.4rem;border-radius:var(--radius-sm);font-size:0.7rem;">${esc(a.typ || 'Notiz')}</span>
+                        <strong style="color:var(--text-primary);margin-left:0.5rem;">${esc(a.betreff)}</strong>
+                    </div>
+                    <div style="display:flex;gap:0.3rem;">
+                        <button class="btn btn-sm btn-outline" onclick="UCP.editPersonenAkte(${idx})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="UCP.deletePersonenAkte(${idx})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;">${datum}</div>
+                ${a.inhalt ? `<div style="margin-top:0.4rem;color:var(--text-secondary);font-size:0.9rem;white-space:pre-wrap;">${esc(a.inhalt)}</div>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    function openNewPersonModal() {
+        document.getElementById('modalPersonTitle').textContent = 'Neue Person';
+        document.getElementById('personEditId').value = '';
+        document.getElementById('personName').value = '';
+        document.getElementById('personTelefon').value = '';
+        document.getElementById('personGeburtstag').value = '';
+        document.getElementById('personAdresse').value = '';
+        document.getElementById('personNotizen').value = '';
+        openModal('modalPerson');
+    }
+
+    function openEditPersonModal() {
+        const person = personen.find(p => p.id === selectedPersonId);
+        if (!person) return;
+        document.getElementById('modalPersonTitle').textContent = 'Person bearbeiten';
+        document.getElementById('personEditId').value = person.id;
+        document.getElementById('personName').value = person.name || '';
+        document.getElementById('personTelefon').value = person.telefon || '';
+        document.getElementById('personGeburtstag').value = person.geburtstag || '';
+        document.getElementById('personAdresse').value = person.adresse || '';
+        document.getElementById('personNotizen').value = person.notizen || '';
+        openModal('modalPerson');
+    }
+
+    function savePerson() {
+        const name = document.getElementById('personName').value.trim();
+        if (!name) { showToast('Name ist erforderlich!', 'error'); return; }
+        const editId = document.getElementById('personEditId').value;
+        const data = {
+            name: name,
+            telefon: document.getElementById('personTelefon').value.trim(),
+            geburtstag: document.getElementById('personGeburtstag').value,
+            adresse: document.getElementById('personAdresse').value.trim(),
+            notizen: document.getElementById('personNotizen').value.trim()
+        };
+        if (editId) {
+            const idx = personen.findIndex(p => p.id === editId);
+            if (idx !== -1) { personen[idx] = { ...personen[idx], ...data }; }
+        } else {
+            data.id = 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            data.akten = [];
+            personen.push(data);
+        }
+        savePersonen();
+        renderPersonen();
+        closeModal('modalPerson');
+        if (selectedPersonId) openPersonDetail(selectedPersonId);
+        showToast(editId ? 'Person aktualisiert!' : 'Person erstellt!');
+    }
+
+    function deletePerson() {
+        if (!selectedPersonId) return;
+        if (!confirm('Person wirklich loeschen?')) return;
+        personen = personen.filter(p => p.id !== selectedPersonId);
+        savePersonen();
+        renderPersonen();
+        document.getElementById('personenDetailOverlay').style.display = 'none';
+        selectedPersonId = null;
+        showToast('Person geloescht!');
+    }
+
+    function openNewPersonenAkteModal() {
+        if (!selectedPersonId) return;
+        document.getElementById('modalPATitle').textContent = 'Neue Akte';
+        document.getElementById('paPersonId').value = selectedPersonId;
+        document.getElementById('paEditIdx').value = '';
+        document.getElementById('paBetreff').value = '';
+        document.getElementById('paTyp').value = 'Notiz';
+        document.getElementById('paDatum').value = new Date().toISOString().split('T')[0];
+        document.getElementById('paInhalt').value = '';
+        openModal('modalPersonenAkte');
+    }
+
+    function editPersonenAkte(idx) {
+        const person = personen.find(p => p.id === selectedPersonId);
+        if (!person || !person.akten[idx]) return;
+        const a = person.akten[idx];
+        document.getElementById('modalPATitle').textContent = 'Akte bearbeiten';
+        document.getElementById('paPersonId').value = selectedPersonId;
+        document.getElementById('paEditIdx').value = idx;
+        document.getElementById('paBetreff').value = a.betreff || '';
+        document.getElementById('paTyp').value = a.typ || 'Notiz';
+        document.getElementById('paDatum').value = a.datum || '';
+        document.getElementById('paInhalt').value = a.inhalt || '';
+        openModal('modalPersonenAkte');
+    }
+
+    function savePersonenAkte() {
+        const personId = document.getElementById('paPersonId').value;
+        const idx = document.getElementById('paEditIdx').value;
+        const betreff = document.getElementById('paBetreff').value.trim();
+        if (!betreff) { showToast('Betreff ist erforderlich!', 'error'); return; }
+        const person = personen.find(p => p.id === personId);
+        if (!person) return;
+        if (!person.akten) person.akten = [];
+        const akteData = {
+            betreff: betreff,
+            typ: document.getElementById('paTyp').value,
+            datum: document.getElementById('paDatum').value,
+            inhalt: document.getElementById('paInhalt').value.trim(),
+            datumErstellt: new Date().toISOString()
+        };
+        if (idx !== '' && idx !== undefined) {
+            person.akten[idx] = { ...person.akten[idx], ...akteData };
+        } else {
+            person.akten.push(akteData);
+        }
+        savePersonen();
+        renderPersonen();
+        openPersonDetail(personId);
+        closeModal('modalPersonenAkte');
+        showToast(idx ? 'Akte aktualisiert!' : 'Akte erstellt!');
+    }
+
+    function deletePersonenAkte(idx) {
+        const person = personen.find(p => p.id === selectedPersonId);
+        if (!person || !person.akten[idx]) return;
+        if (!confirm('Akte wirklich loeschen?')) return;
+        person.akten.splice(idx, 1);
+        savePersonen();
+        renderPersonen();
+        openPersonDetail(selectedPersonId);
+        showToast('Akte geloescht!');
+    }
+
+    UCP.openPersonDetail = openPersonDetail;
+    UCP.editPersonenAkte = editPersonenAkte;
+    UCP.deletePersonenAkte = deletePersonenAkte;
 
     // ============================================================
     // UTILS

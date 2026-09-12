@@ -792,6 +792,110 @@
                     </div>
                 </section>
 
+                <!-- PERSONEN-AKTEN -->
+                <section id="module-personen" class="module">
+                    <div class="module-header">
+                        <h1><i class="fas fa-id-card"></i> Personen-Akten</h1>
+                        <button class="btn btn-primary" id="btnNeuePerson">+ Neue Person</button>
+                    </div>
+                    <div class="content-grid">
+                        <div class="stats-row">
+                            <div class="mini-stat"><span class="mini-stat-label">PERSONEN</span><span class="mini-stat-value" id="personenGesamt">0</span></div>
+                            <div class="mini-stat"><span class="mini-stat-label">AKTEN</span><span class="mini-stat-value" id="personenAkten">0</span></div>
+                        </div>
+                        <div class="card card-full">
+                            <div class="card-header">
+                                <h2>Alle Personen</h2>
+                                <div class="search-filters" style="margin:0">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchPersonen" placeholder="Name, Telefon..." class="search-input">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="personenListe"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PERSONEN-AKTEN DETAIL (wird per JS ein/ausgeblendet) -->
+                <div id="personenDetailOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; overflow-y:auto;">
+                    <div style="max-width:800px; margin:2rem auto; background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color); padding:1.5rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h2 id="personDetailName" style="color:var(--text-primary);"></h2>
+                            <button class="btn btn-sm btn-outline" id="closePersonDetail"><i class="fas fa-times"></i> Schliessen</button>
+                        </div>
+                        <div id="personDetailInfo" style="margin-bottom:1rem;"></div>
+                        <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                            <button class="btn btn-sm btn-outline" id="btnEditPerson"><i class="fas fa-edit"></i> Bearbeiten</button>
+                            <button class="btn btn-sm btn-danger" id="btnDeletePerson"><i class="fas fa-trash"></i> Loeschen</button>
+                            <button class="btn btn-sm btn-primary" id="btnNeuePersonenAkte" style="margin-left:auto;"><i class="fas fa-plus"></i> Neue Akte</button>
+                        </div>
+                        <h3 style="color:var(--text-primary); margin-bottom:0.5rem;">Persoenliche Akten</h3>
+                        <div id="personenAktenListe"></div>
+                    </div>
+                </div>
+
+                <!-- MODAL: Neue/Bearbeiten Person -->
+                <div class="modal" id="modalPerson">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalPersonTitle">Neue Person</h3>
+                            <button class="modal-close" onclick="closeModal('modalPerson')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="personEditId">
+                            <div class="form-group"><label>Name *</label><input type="text" id="personName" required placeholder="Max Mustermann"></div>
+                            <div class="form-row">
+                                <div class="form-group"><label>Telefon</label><input type="text" id="personTelefon" placeholder="+49 123 456789"></div>
+                                <div class="form-group"><label>Geburtstag</label><input type="date" id="personGeburtstag"></div>
+                            </div>
+                            <div class="form-group"><label>Adresse</label><input type="text" id="personAdresse" placeholder="Strasse, PLZ Ort"></div>
+                            <div class="form-group"><label>Notizen</label><textarea id="personNotizen" rows="3" placeholder="Zusaetzliche Informationen..."></textarea></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="closeModal('modalPerson')">Abbrechen</button>
+                            <button class="btn btn-primary" id="btnSavePerson">Speichern</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODAL: Neue Person-Akte -->
+                <div class="modal" id="modalPersonenAkte">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalPATitle">Neue Akte</h3>
+                            <button class="modal-close" onclick="closeModal('modalPersonenAkte')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="paPersonId">
+                            <input type="hidden" id="paEditIdx">
+                            <div class="form-group"><label>Betreff *</label><input type="text" id="paBetreff" required placeholder="z.B. Verkehrskontrolle"></div>
+                            <div class="form-row">
+                                <div class="form-group"><label>Typ</label>
+                                    <select id="paTyp">
+                                        <option value="Notiz">Notiz</option>
+                                        <option value="Vorfall">Vorfall</option>
+                                        <option value="Kontrolle">Kontrolle</option>
+                                        <option value="Zeugenaussage">Zeugenaussage</option>
+                                        <option value="Verwarnung">Verwarnung</option>
+                                        <option value="Beschwerde">Beschwerde</option>
+                                        <option value="Sonstiges">Sonstiges</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Datum</label><input type="date" id="paDatum"></div>
+                            </div>
+                            <div class="form-group"><label>Inhalt</label><textarea id="paInhalt" rows="5" placeholder="Details zur Akte..."></textarea></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline" onclick="closeModal('modalPersonenAkte')">Abbrechen</button>
+                            <button class="btn btn-primary" id="btnSavePersonenAkte">Speichern</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- NACHRICHTEN -->
                 <section id="module-nachrichten" class="module">
                     <div class="module-header">

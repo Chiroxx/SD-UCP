@@ -21,7 +21,8 @@
         'ucp_personalakten': 'personalakten',
         'ucp_berichte': 'berichte',
         'ucp_mediathek': 'mediathek',
-        'ucp_settings': 'settings'
+        'ucp_settings': 'settings',
+        'ucp_personen': 'personen'
     };
 
     var DB_FIELDS = {
@@ -40,7 +41,8 @@
         'berichte': ['titel', 'typ', 'status', 'datum', 'uhrzeit', 'ort', 'beteiligte', 'vorfall', 'massnahmen', 'aktenzeichen', 'autor', 'created_at'],
         'mediathek': ['titel', 'kategorie', 'autor', 'inhalt', 'link', 'created_at'],
         'news': ['titel', 'inhalt', 'kategorie', 'autor', 'created_at'],
-        'settings': ['key', 'value', 'updated_at']
+        'settings': ['key', 'value', 'updated_at'],
+        'personen': ['name', 'telefon', 'geburtstag', 'adresse', 'notizen', 'akten', 'user_id']
     };
 
     var _s = null;
