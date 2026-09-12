@@ -78,6 +78,16 @@
         return row;
     }
 
+    function deduplicate(arr, key) {
+        var seen = {};
+        return arr.filter(function(item) {
+            var k = key(item);
+            if (seen[k]) return false;
+            seen[k] = true;
+            return true;
+        });
+    }
+
     function loadAllFromDB(callback) {
         if (!_s) { callback(); return; }
         var keys = Object.keys(TABLES);
@@ -87,9 +97,15 @@
             var table = TABLES[key];
             _s.from(table).select('*').then(function(res) {
                 if (!res.error && res.data && res.data.length > 0) {
-                    localStorage.setItem(key, JSON.stringify(res.data.map(fromDBRow)));
-                } else if (!res.error && res.data && res.data.length === 0) {
-                    // Tabelle ist leer - nichts tun
+                    var data = res.data.map(fromDBRow);
+                    if (table === 'users') {
+                        data = deduplicate(data, function(u) { return u.username || u.id; });
+                    } else if (table === 'mitarbeiter') {
+                        data = deduplicate(data, function(m) { return (m.vorname || '') + '_' + (m.nachname || '') + '_' + (m.dienstnr || ''); });
+                    } else {
+                        data = deduplicate(data, function(r) { return r.id || JSON.stringify(r).substring(0, 50); });
+                    }
+                    localStorage.setItem(key, JSON.stringify(data));
                 } else if (res.error) {
                     console.warn('[DB] Laden ' + table + ':', res.error.message);
                 }
@@ -127,7 +143,7 @@
                 return Promise.resolve();
             }
 
-            return _s.from(table).delete().gt('created_at', '1900-01-01').then(function() {
+            return _s.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000').then(function() {
                 if (data.length > 0) {
                     var rows = data.map(function(r) { return toDBRow(r, table); });
                     return _s.from(table).insert(rows).then(function(res) {
