@@ -1,4 +1,4 @@
-// SD-UCP Supabase Datenbank - App laeuft komplett ueber die Datenbank
+// SD-UCP Supabase Datenbank
 (function() {
     'use strict';
 
@@ -46,6 +46,7 @@
     };
 
     var _s = null;
+    var _loading = false; // Flag um Speicher-Loops zu verhindern
 
     function waitForLib(cb, n) {
         n = n || 0;
@@ -58,26 +59,21 @@
         var fields = DB_FIELDS[table];
         if (!fields) return obj;
         var row = {};
-        // id nur uebernehmen wenn es eine gueltige UUID ist
-        if (obj.id && typeof obj.id === 'string' && obj.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (obj.id && typeof obj.id === 'string' && uuidRe.test(obj.id)) {
             row.id = obj.id;
         }
         fields.forEach(function(f) {
-            // camelCase -> DB direct
             if (obj[f] !== undefined) {
-                if (obj[f] === '' && (f.includes('datum') || f.includes('date') || f === 'geburtstag')) {
-                    row[f] = null; return;
-                }
+                if (obj[f] === '' && (f.includes('datum') || f.includes('date') || f === 'geburtstag')) { row[f] = null; return; }
                 row[f] = obj[f]; return;
             }
-            // camelCase Mappings
             if (f === 'full_name' && obj.fullName) { row[f] = obj.fullName; return; }
             if (f === 'rank' && obj.rang) { row[f] = obj.rang; return; }
             if (f === 'is_admin' && obj.isAdmin !== undefined) { row[f] = obj.isAdmin; return; }
             if (f === 'gesucht_grund' && obj.gesuchtGrund) { row[f] = obj.gesuchtGrund; return; }
             if (f === 'erstellt_von' && obj.erstelltVon) { row[f] = obj.erstelltVon; return; }
             if (f === 'teilnehmer_notizen' && obj.teilnehmerNotizen) { row[f] = obj.teilnehmerNotizen; return; }
-            if (f === 'beschreibung' && obj.beschreibung) { row[f] = obj.beschreibung; return; }
             if (f === 'created_at') { row[f] = obj.createdAt || new Date().toISOString(); return; }
             if (f === 'updated_at') { row[f] = new Date().toISOString(); return; }
         });
@@ -106,37 +102,63 @@
         });
     }
 
+    // ============================================================
+    // LADEN AUS DB
+    // ============================================================
     function loadAllFromDB(callback) {
         if (!_s) { callback(); return; }
+        _loading = true;
         var keys = Object.keys(TABLES);
         var done = 0;
 
         keys.forEach(function(key) {
             var table = TABLES[key];
+
+            // Settings: Sonderbehandlung (Key-Value -> Object)
+            if (table === 'settings') {
+                _s.from(table).select('*').then(function(res) {
+                    if (!res.error && res.data) {
+                        var settingsObj = {};
+                        res.data.forEach(function(row) { settingsObj[row.key] = row.value; });
+                        localStorage.setItem(key, JSON.stringify(settingsObj));
+                    }
+                    done++;
+                    if (done === keys.length) { _loading = false; callback(); }
+                }).catch(function() {
+                    done++;
+                    if (done === keys.length) { _loading = false; callback(); }
+                });
+                return;
+            }
+
+            // Alle anderen Tabellen
             _s.from(table).select('*').then(function(res) {
-                if (!res.error && res.data && res.data.length > 0) {
-                    var data = res.data.map(fromDBRow);
+                if (res.error) {
+                    console.warn('[DB] Laden ' + table + ':', res.error.message);
+                } else {
+                    var data = (res.data || []).map(fromDBRow);
                     if (table === 'users') {
                         data = deduplicate(data, function(u) { return u.username || ''; });
                     } else if (table === 'mitarbeiter') {
-                        data = deduplicate(data, function(m) { return (m.vorname || '') + '|' + (m.nachname || '') + '|' + (m.dienstnr || '') + '|' + (m.user_id || ''); });
+                        data = deduplicate(data, function(m) { return (m.vorname || '') + '|' + (m.nachname || '') + '|' + (m.dienstnr || ''); });
                     }
                     localStorage.setItem(key, JSON.stringify(data));
-                } else if (res.error) {
-                    console.warn('[DB] Laden ' + table + ':', res.error.message);
                 }
                 done++;
-                if (done === keys.length) callback();
+                if (done === keys.length) { _loading = false; callback(); }
             }).catch(function(e) {
                 console.warn('[DB] Laden ' + table + ':', e.message);
                 done++;
-                if (done === keys.length) callback();
+                if (done === keys.length) { _loading = false; callback(); }
             });
         });
     }
 
+    // ============================================================
+    // SPEICHERN IN DB
+    // ============================================================
     function saveTableToDB(key) {
-        if (!_s) return Promise.resolve();
+        if (!_s || _loading) return Promise.resolve();
         var table = TABLES[key];
         if (!table) return Promise.resolve();
         var raw = localStorage.getItem(key);
@@ -146,6 +168,7 @@
             var data = JSON.parse(raw);
             if (!data) return Promise.resolve();
 
+            // Settings: Key-Value Upsert
             if (table === 'settings') {
                 if (typeof data === 'object' && !Array.isArray(data)) {
                     var proms = [];
@@ -161,6 +184,8 @@
                 return Promise.resolve();
             }
 
+            if (!Array.isArray(data)) return Promise.resolve();
+
             // Alle existierenden IDs aus der DB holen
             return _s.from(table).select('id').then(function(existing) {
                 var existingIds = [];
@@ -168,26 +193,26 @@
                     existingIds = existing.data.map(function(r) { return r.id; }).filter(Boolean);
                 }
 
-                if (!Array.isArray(data)) data = [];
+                if (data.length === 0 && existingIds.length === 0) return Promise.resolve();
 
-                if (data.length === 0 && existingIds.length === 0) {
-                    return Promise.resolve();
-                }
-
-                // 1. Alle aus DB loeschen die nicht mehr in localStorage sind
+                // 1. Alle aus DB loeschen
                 var deleteProms = existingIds.map(function(id) {
                     return _s.from(table).delete().eq('id', id);
                 });
 
                 return Promise.all(deleteProms).then(function() {
+                    if (data.length === 0) {
+                        console.log('[DB] ' + table + ': 0 Zeilen (alle geloescht)');
+                        return Promise.resolve();
+                    }
+
                     // 2. Alle rows erzeugen
                     var allRows = data.map(function(r) { return toDBRow(r, table); });
 
-                    // Ungueltige id Felder entfernen (nur echte UUIDs erlauben)
+                    // Ungueltige id Felder entfernen
                     var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
                     allRows.forEach(function(r) {
                         if (r.id && !uuidRe.test(r.id)) delete r.id;
-                        // Leere Strings bei Datum/Date-Feldern -> null
                         Object.keys(r).forEach(function(k) {
                             if (r[k] === '' && (k.includes('datum') || k.includes('date') || k === 'geburtstag')) {
                                 r[k] = null;
@@ -195,17 +220,13 @@
                         });
                     });
 
-                    // 3. Mit id einfuegen (aus DB), ohne id (neu) separat
+                    // 3. Einfuegen
                     var toInsert = allRows.filter(function(r) { return r.id; });
                     var toInsertNoId = allRows.filter(function(r) { return !r.id; });
 
                     var insertProms = [];
-                    if (toInsert.length > 0) {
-                        insertProms.push(_s.from(table).insert(toInsert));
-                    }
-                    if (toInsertNoId.length > 0) {
-                        insertProms.push(_s.from(table).insert(toInsertNoId));
-                    }
+                    if (toInsert.length > 0) insertProms.push(_s.from(table).insert(toInsert));
+                    if (toInsertNoId.length > 0) insertProms.push(_s.from(table).insert(toInsertNoId));
 
                     return Promise.all(insertProms).then(function(results) {
                         var hasError = results.some(function(r) { return r.error; });
@@ -226,12 +247,15 @@
     }
 
     function saveAllToDB() {
-        if (!_s) return;
+        if (!_s || _loading) return;
         Object.keys(TABLES).forEach(function(key) {
             saveTableToDB(key);
         });
     }
 
+    // ============================================================
+    // LOGIN UEBER DB
+    // ============================================================
     function setupDBLogin() {
         var form = document.getElementById('formLogin');
         if (!form || form._dbHandler) return;
@@ -273,6 +297,9 @@
         else { setTimeout(function() { waitForApp(cb, n + 1); }, 250); }
     }
 
+    // ============================================================
+    // START
+    // ============================================================
     waitForLib(function(supabase) {
         if (!supabase) {
             console.warn('[DB] Supabase nicht verfuegbar - lokaler Modus');
@@ -291,12 +318,12 @@
                     var origSetItem = localStorage.setItem.bind(localStorage);
                     localStorage.setItem = function(key, value) {
                         origSetItem(key, value);
-                        if (TABLES[key]) {
+                        if (!_loading && TABLES[key]) {
                             saveTableToDB(key);
                         }
                     };
 
-                    // Alle 10 Sekunden: Daten AUS DB laden (fuer Kollegen)
+                    // Alle 10 Sekunden: Daten AUS DB laden
                     setInterval(function() {
                         loadAllFromDB(function() {
                             console.log('[DB] Aktualisiert!');
