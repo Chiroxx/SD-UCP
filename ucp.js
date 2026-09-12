@@ -219,6 +219,30 @@
         if (!currentUser) return;
         if (currentUser.rank && !currentUser.rang) currentUser.rang = currentUser.rank;
         if (currentUser.full_name && !currentUser.fullName) currentUser.fullName = currentUser.full_name;
+
+        // Bulk-Sync: Sync all mitarbeiter ranks/status to users table
+        let usersChanged = false;
+        mitarbeiter.forEach(m => {
+            const u = users.find(usr => usr.username === m.user_id || (usr.fullName || usr.username) === (m.vorname + ' ' + m.nachname));
+            if (u) {
+                if (u.rang !== m.rang) { u.rang = m.rang; usersChanged = true; }
+                if (u.dienstnr !== m.dienstnr) { u.dienstnr = m.dienstnr; usersChanged = true; }
+                if (u.fullName !== (m.vorname + ' ' + m.nachname)) { u.fullName = m.vorname + ' ' + m.nachname; usersChanged = true; }
+                if (u.isAdmin !== undefined && m.isAdmin !== undefined && u.isAdmin !== m.isAdmin) { u.isAdmin = m.isAdmin; usersChanged = true; }
+            }
+        });
+        if (usersChanged) localStorage.setItem('ucp_users', JSON.stringify(users));
+
+        // Auto-Sync: Update currentUser from users (now with synced data)
+        const latestUser = users.find(u => u.username === currentUser.username);
+        if (latestUser) {
+            if (latestUser.rang) currentUser.rang = latestUser.rang;
+            if (latestUser.fullName) currentUser.fullName = latestUser.fullName;
+            if (latestUser.dienstnr) currentUser.dienstnr = latestUser.dienstnr;
+            if (latestUser.isAdmin !== undefined) currentUser.isAdmin = latestUser.isAdmin;
+            localStorage.setItem('ucp_currentUser', JSON.stringify(currentUser));
+        }
+
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appContent').style.display = 'flex';
         document.getElementById('userName').textContent = currentUser.fullName || currentUser.username;
@@ -1133,9 +1157,11 @@
 
     function loadProfil() {
         if (!currentUser) return;
-        const m = mitarbeiter.find(m => m.vorname + ' ' + m.nachname === (currentUser.fullName || currentUser.username) || m.dienstnr === currentUser.dienstnr) || {};
+        const m = mitarbeiter.find(m => m.user_id === currentUser.username || m.vorname + ' ' + m.nachname === (currentUser.fullName || currentUser.username) || m.dienstnr === currentUser.dienstnr) || {};
 
-        document.getElementById('profRang').textContent = currentUser.rang || '-';
+        // Always use rang from mitarbeiter (most up-to-date)
+        const currentRang = m.rang || currentUser.rang || '-';
+        document.getElementById('profRang').textContent = currentRang;
         document.getElementById('profAbteilung').textContent = m.abteilung || '-';
         document.getElementById('profFunktion').textContent = m.funktion || '-';
         document.getElementById('profDienstnr').textContent = m.dienstnr || '-';
