@@ -226,14 +226,12 @@
                 loadAllFromDB(function() {
                     console.log('[DB] Alle Daten aus der Datenbank geladen!');
                     setupDBLogin();
-                    // Alle 30 Sekunden: Daten AUS DB laden (fuer Kollegen)
+                    // Alle 30 Sekunden: Erst AUS DB laden, dann IN DB speichern
                     setInterval(function() {
                         loadAllFromDB(function() {
-                            console.log('[DB] Daten aktualisiert!');
+                            saveAllToDB();
                         });
                     }, 30000);
-                    // Alle 60 Sekunden: Daten IN DB speichern
-                    setInterval(saveAllToDB, 60000);
                 });
             });
         } catch(e) {
