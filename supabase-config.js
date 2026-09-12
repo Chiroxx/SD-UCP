@@ -226,11 +226,14 @@
                 loadAllFromDB(function() {
                     console.log('[DB] Alle Daten aus der Datenbank geladen!');
                     setupDBLogin();
-                    // Alle 30 Sekunden: Erst AUS DB laden, dann IN DB speichern
+                    // Alle 30 Sekunden: Erst IN DB speichern (Loeschungen), dann AUS DB laden
                     setInterval(function() {
-                        loadAllFromDB(function() {
-                            saveAllToDB();
-                        });
+                        saveAllToDB();
+                        setTimeout(function() {
+                            loadAllFromDB(function() {
+                                console.log('[DB] Sync abgeschlossen!');
+                            });
+                        }, 3000);
                     }, 30000);
                 });
             });
